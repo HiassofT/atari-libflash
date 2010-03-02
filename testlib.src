@@ -1,0 +1,38 @@
+START	= $2000
+	.include "libflash.inc"
+	.include "cio.inc"
+
+	.bank
+
+	* = START
+
+	LDA #$80
+	STA 106
+	JSR GR0
+
+	JSR FENABLE
+	JSR FDETECT
+	JSR FDISABLE
+	LDA FTYPE
+	JSR PUTHEX
+X	JMP X
+
+
+	SETFADR $1234
+	SETFADRI 0,0
+	SETFADRI 2,0
+	SETDADR $1234
+	SETDADRI $1234
+
+	RTS
+
+.IF .DEF BERND
+	.include "libflash-mega512.src"
+.else
+	.include "libflash-atarimax8.src"
+.endif
+	.include "iohelp.src"
+
+	.bank
+	* = $2E0
+	.WORD START

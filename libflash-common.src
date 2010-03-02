@@ -1,0 +1,1061 @@
+;  libflash-common - generic flash programming code
+;
+;  Copyright (C) 2004-2010 Matthias Reichl <hias@horus.com>
+;
+;  This program is free software; you can redistribute it and/or modify
+;  it under the terms of the GNU General Public License as published by
+;  the Free Software Foundation; either version 2 of the License, or
+;  (at your option) any later version.
+;
+;  This program is distributed in the hope that it will be useful,
+;  but WITHOUT ANY WARRANTY; without even the implied warranty of
+;  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;  GNU General Public License for more details.
+;
+;  You should have received a copy of the GNU General Public License
+;  along with this program; if not, write to the Free Software
+;  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+
+; read 3-byte linear address from TMPVEC and setup
+; absolute internal addresses
+FSETADR
+	LDY #0
+	LDA (TMPVEC),Y
+	STA FLASHVEC
+	INY
+	LDA (TMPVEC),Y
+	STA FLASHVEC+1
+	PHA
+	INY
+	LDA (TMPVEC),Y
+	STA ?BANKRD
+
+.IF BANKSIZ = 16
+; 16k banks
+	ASL FLASHVEC+1
+	ROL ?BANKRD
+	ASL FLASHVEC+1
+	ROL ?BANKRD
+	LDA ?BANKRD
+	PLA
+	AND #$3F
+.ELSE
+	ASL FLASHVEC+1
+	ROL ?BANKRD
+	ASL FLASHVEC+1
+	ROL ?BANKRD
+	ASL FLASHVEC+1
+	ROL ?BANKRD
+	LDA ?BANKRD
+	PLA
+	AND #$1F
+.ENDIF
+	CLC
+	ADC #>BANKBAS
+	STA FLASHVEC+1
+
+; setup banks
+	LDA ?BANKRD
+	CBASEWR
+	STA ?BASEWR
+
+	LDA ?BANKRD
+	CBASERD
+	STA ?BASERD
+
+	LDA ?BANKRD
+	CBANKWR
+	STA ?BANKWR
+
+	LDA ?BANKRD
+	CBANKRD
+	STA ?BANKRD
+
+	RTS
+
+?BANKRD	.BYTE 0	; current bank number for reading
+?BANKWR	.BYTE 0	; current bank number for writing
+?BASERD	.BYTE 0	; base bank number for reading signatures etc.
+?BASEWR	.BYTE 0 ; base bank number for writing signatures etc.
+
+; internal flash types:
+?ITHI	= 0	; $5555 addresses: AMD 29F010 / BM 29F040
+?ITLO	= 1	; $0555 addresses: AMD 29F010B, 29F040B / ST 29F010 / ST 29F040B
+;TSSTWIN	= 2	; SST 29EE010 / Winbond 29EE011
+
+?ITYPE	.BYTE 0
+
+
+; common signature
+?SIG	LDX ?BASEWR
+	LDA ?ITYPE
+	CMP #?ITLO
+	BNE ?SIG1
+
+	SBANKX
+; $555 = $AA
+	LDA #$AA
+	STA BANKBAS+$555
+; $2AA = $55
+	LDA #$55
+	STA BANKBAS+$2AA
+	RTS
+
+?SIG1
+.IF BANKSIZ = 16
+; $5555 = $AA
+	INX
+	SBANKX
+	LDA #$AA
+	STA BANKBAS+$1555
+; $2AAA = $55
+	DEX
+	SBANKX
+	LDA #$55
+	STA BANKBAS+$2AAA
+.ELSE
+; $5555 = $AA
+	INX
+	INX
+	SBANKX
+	LDA #$AA
+	STA BANKBAS+$1555
+; $2AAA = $55
+	DEX
+	SBANKX
+	LDA #$55
+	STA BANKBAS+$AAA
+.ENDIF
+	RTS
+
+
+; put the flash into "read" mode
+?SETREAD
+	LDX #5
+	JSR ?WAIT
+
+	LDA ?ITYPE
+	CMP #?ITLO
+	BNE ?SETREA1
+
+; write $F0 to any memory location
+	LDX ?BASEWR
+	SBANKX
+	LDA #$F0
+	STA BANKBAS
+; set bank for reading data
+	LDX ?BASERD
+	SBANKX
+	RTS
+
+?SETREA1
+	JSR ?SIG
+	LDX ?BASEWR
+
+.IF BANKSIZ = 16
+; $5555 = $F0
+	INX
+	SBANKX
+	LDA #$F0
+	STA BANKBAS+$1555
+.ELSE
+; $5555 = $F0
+	INX
+	INX
+	SBANKX
+	LDA #$F0
+	STA BANKBAS+$1555
+.ENDIF
+; set bank for reading data
+	LDX ?BASERD
+	SBANKX
+	RTS
+
+; put flash into "ID/autoselect" mode
+?SETID
+	JSR ?SIG
+	LDX ?BASEWR
+
+	LDA ?ITYPE
+	CMP #?ITLO
+	BNE ?SETID1
+
+; $555 = $90
+	SBANKX
+	LDA #$90
+	STA BANKBAS+$555
+; set bank for reading ID
+	LDX ?BASERD
+	SBANKX
+	RTS
+
+?SETID1
+
+.IF BANKSIZ = 16
+; $5555 = $90
+	INX
+	SBANKX
+	LDA #$90
+	STA BANKBAS+$1555
+.ELSE
+; $5555 = $90
+	INX
+	INX
+	SBANKX
+	LDA #$90
+	STA BANKBAS+$1555
+.ENDIF
+; set bank for reading ID
+	LDX ?BASERD
+	SBANKX
+	RTS
+
+; put flash into "byte program" mode
+?SETPROG
+	JSR ?SIG
+	LDX ?BASEWR
+
+	LDA ?ITYPE
+	CMP #?ITLO
+	BNE ?SETPRO1
+
+; $555 = $A0
+	SBANKX
+	LDA #$A0
+	STA BANKBAS+$555
+
+; set current bank number
+	LDX ?BANKWR
+	SBANKX
+	RTS
+
+?SETPRO1
+
+.IF BANKSIZ = 16
+; $5555 = $A0
+	INX
+	SBANKX
+	LDA #$A0
+	STA BANKBAS+$1555
+.ELSE
+; $5555 = $A0
+	INX
+	INX
+	SBANKX
+	LDA #$A0
+	STA BANKBAS+$1555
+.ENDIF
+; set current bank number
+	LDX ?BANKWR
+	SBANKX
+	RTS
+
+; common signature for chip/block erase
+?SIGERAS
+	JSR ?SIG
+	LDX ?BASEWR
+
+	LDA ?ITYPE
+	CMP #?ITLO
+	BNE ?SIGERA1
+
+; $555 = $80
+	SBANKX
+	LDA #$80
+	STA BANKBAS+$555
+; $555 = $AA
+	LDA #$AA
+	STA BANKBAS+$555
+; $2AA = $55
+	LDA #$55
+	STA BANKBAS+$2AA
+	RTS
+
+?SIGERA1
+.IF BANKSIZ = 16
+; $5555 = $80
+	INX
+	SBANKX
+	LDA #$80
+	STA BANKBAS+$1555
+; $5555 = $AA
+	LDA #$AA
+	STA BANKBAS+$1555
+; $2AAA = $55
+	DEX
+	SBANKX
+	LDA #$55
+	STA BANKBAS+$2AAA
+.ELSE
+; $5555 = $80
+	INX
+	INX
+	SBANKX
+	LDA #$80
+	STA BANKBAS+$1555
+; $5555 = $AA
+	LDA #$AA
+	STA BANKBAS+$1555
+; $2AAA = $55
+	DEX
+	SBANKX
+	LDA #$55
+	STA BANKBAS+$AAA
+.ENDIF
+	RTS
+
+; put flash into "chip erase" mode
+?SETCERA
+	JSR ?SIGERAS
+	LDX ?BASEWR
+
+	LDA ?ITYPE
+	CMP #?ITLO
+	BNE ?SETCER1
+
+	SBANKX
+; $555 = $10
+	LDA #$10
+	STA BANKBAS+$555
+; set bank for reading status
+	LDX ?BANKRD
+	SBANKX
+	RTS
+
+?SETCER1
+.IF BANKSIZ = 16
+; $5555 = $10
+	INX
+	SBANKX
+	LDA #$10
+	STA BANKBAS+$1555
+.ELSE
+; $5555 = $10
+	INX
+	INX
+	SBANKX
+	LDA #$10
+	STA BANKBAS+$1555
+.ENDIF
+; set bank for reading status
+	LDX ?BANKRD
+	SBANKX
+	RTS
+
+; put flash into "Block erase" mode (bank must be set correctly!)
+?SETBERA
+	JSR ?SIGERAS
+	LDX ?BANKWR
+	SBANKX
+
+; flashadr = $30
+	LDA #$30
+	LDY #0
+	STA (FLASHVEC),Y
+
+; set bank for reading status
+	LDX ?BANKRD
+	SBANKX
+	RTS
+
+; wait for a short time (specified in X)
+?WAIT	LDY #0
+?WTLP	DEY
+	BNE ?WTLP
+	DEX
+	BNE ?WTLP
+	RTS
+
+; detect flash type, set FTYPE
+FDETECT
+
+; detect flash chips with "high" signatures
+	LDA #?ITHI
+	STA ?ITYPE
+	JSR ?SETID
+
+	LDX #253	; start at index -3
+?DET1	INX
+	INX
+	INX
+	LDA ?IDHI,X	; get flash type
+	STA FTYPE
+	BMI ?DET2	; negative means end of list
+	LDA BANKBAS	; check manufacturer ID
+	CMP ?IDHI+1,X
+	BNE ?DET1
+	LDA BANKBAS+1	; check device ID
+	CMP ?IDHI+2,X
+	BNE ?DET1
+	JMP ?SETREAD	; found chip, return
+
+; detect flash chips with "low" signatures
+?DET2	LDX #253	; start at index -3
+?DET3	INX
+	INX
+	INX
+	LDA ?IDLO,X	; get flash type
+	STA FTYPE
+	BMI ?DET4	; negative means end of list
+	LDA BANKBAS	; check manufacturer ID
+	CMP ?IDLO+1,X
+	BNE ?DET3
+	LDA BANKBAS+1	; check device ID
+	CMP ?IDLO+2,X
+	BNE ?DET3
+	JMP ?SETREAD	; found chip, return
+
+?DET4	JMP ?SETREAD	; try to leave ID mode anyways
+
+; ID tables
+; format: chip-type, manufacturer ID, device ID
+
+?IDHI	.BYTE TAMD10, $01, $20	; AMD 29F010
+	.BYTE TBM40, $AD, $40	; BM 29F040
+	.BYTE $FF,$FF,$FF	; end of table
+
+?IDLO	.BYTE TAMD10B, $01, $20	; AMD 29F010B
+	.BYTE TAMD40B, $01, $A4	; AMD 29F040B
+	.BYTE TST10B, $20, $20	; ST 29F010B
+	.BYTE TST40B, $20, $E2	; ST 29F040B
+	.BYTE $FF,$FF,$FF	; end of table
+
+FTYPE	.BYTE 0
+
+; DQ7 polling algorithm
+?WTDATA	AND #$80
+	STA ?WTBYTE
+?WTDLP	LDA (FLASHVEC),Y
+	EOR ?WTBYTE
+	BPL ?WTDOK
+	AND #$20
+	BEQ ?WTDLP
+	LDA (FLASHVEC),Y
+	EOR ?WTBYTE
+	BPL ?WTDOK
+	JSR ?SETREAD
+	LDA #$FF
+	RTS
+
+?WTDOK	LDA #$00
+	RTS
+
+?WTBYTE	.BYTE 0
+
+; write X bytes from (DATAVEC),Y to (FLASHVEC),Y
+FWBYTE	STX ?FBCOUNT
+
+?FWBYT1	JSR ?SETPROG
+	LDA (DATAVEC),Y
+	STA (FLASHVEC),Y	; program data
+	LDX ?BANKRD
+	SBANKX
+	JSR ?WTDATA		; wait for programming to finish
+	BMI ?FWBYT2		; error
+	LDA (DATAVEC),Y		; verify data
+	CMP (FLASHVEC),Y
+	BNE ?FWBYT2
+	INY
+	DEC ?FBCOUNT		; next byte?
+	BNE ?FWBYT1
+	LDA #0
+	RTS
+?FWBYT2	LDA #$FF
+	RTS
+
+; write X pages from DATAVEC to FLASHVEC, increments DATAVEC and FLASHVEC
+FWPAGE	STX ?FPCOUNT
+
+?FWPAG1	LDX #0			; 256 bytes
+	LDY #0
+	JSR FWBYTE
+	BMI ?FWPAG1		; error
+	INC DATAVEC+1
+	INC FLASHVEC+1
+	DEC ?FPCOUNT
+	BNE ?FWPAG1
+	LDA #0
+	RTS
+?FWPAG2	LDA #$FF
+	RTS
+
+; write X bytes from (FLASHVEC),Y to (DATAVEC),Y
+FRBYTE	STX ?FBCOUNT
+	LDX ?BANKRD
+	SBANKX
+
+?FRBYT1 LDA (FLASHVEC),Y
+	STA (DATAVEC),Y
+	INY
+	DEC ?FBCOUNT
+	BNE ?FRBYT1
+	RTS
+
+; write X pages from FLASHVEC to DATAVEC, increments DATAVEC and FLASHVEC
+FRPAGE	STX ?FPCOUNT
+
+?FRPAG1	LDX #0			; 256 bytes
+	LDY #0
+	JSR FRBYTE
+	INC DATAVEC+1
+	INC FLASHVEC+1
+	DEC ?FPCOUNT
+	BNE ?FRPAG1
+	RTS
+
+; compare X bytes from (FLASHVEC),Y to (DATAVEC),Y
+FCBYTE	STX ?FBCOUNT
+	LDX ?BANKRD
+	SBANKX
+
+?FCBYT1 LDA (FLASHVEC),Y
+	CMP (DATAVEC),Y
+	BNE ?FCBYT1		; bytes differ
+	INY
+	DEC ?FBCOUNT
+	BNE ?FCBYT1
+	LDA #0
+	RTS
+?FCBYT2	LDA #$FF
+	RTS
+
+; compare X bytes from FLASHVEC to DATAVEC, increments DATAVEC and FLASHVEC
+FCPAGE	STX ?FPCOUNT
+
+?FCPAG1	LDX #0			; 256 bytes
+	LDY #0
+	JSR FCBYTE
+	BMI ?FCPAG2
+	INC DATAVEC+1
+	INC FLASHVEC+1
+	DEC ?FPCOUNT
+	BNE ?FCPAG1
+	LDA #0
+?FCPAG2	RTS
+
+?FBCOUNT	.BYTE 0		; byte counter
+?FPCOUNT	.BYTE 0		; page counter
+
+; completely erase flash chip
+FCERAS	JSR ?SETCERA
+	LDA #$FF
+	LDY #0
+	JMP ?WTDATA
+
+; erase flash bank
+FPERAS	JSR ?SETBERA
+	LDA #$FF
+	LDY #0
+	JMP ?WTDATA
+
+
+.IF 0
+; old code
+BANKREG	= $D500
+BANKOFF	= $D580
+
+TRIG3   = $D013
+GINTLK  = $03FA
+
+ORG = $2000
+
+; flash destiniation address ($0000-$3fff)
+SRCADR	= $E0 ; $E1
+DSTADR	= $E2 ; $E3
+TMPADR	= $E4 ; $E5
+
+PROGIDX	= $E6
+BANKOFS	= $E7
+
+BASE	= $A000
+END	= $C000
+
+; flash type definitions
+TAMD	= 0	; AMD 29F010 / BM 29F040
+TAMD40	= 1	; AMD 29F040B / ST 29F010 / ST 29F040B
+
+;TSSTWIN	= 2	; SST 29EE010 / Winbond 29EE011
+
+CARTON	SEI
+	LDA #0
+	STA $D40E
+	STA BANKREG
+	LDA TRIG3
+	STA GINTLK
+	LDA #$40
+	STA $D40E
+	CLI
+	RTS
+        
+CARTOFF	SEI
+	LDA #0
+	STA $D40E
+	STA BANKOFF
+	LDA TRIG3
+	STA GINTLK
+	LDA #$40
+	STA $D40E
+	CLI
+	RTS
+
+; program an 8k flash block
+
+PROGBLK
+;	SEI
+;	LDA #0
+;	STA $D40E
+;	STA $D400
+;	LDA BANKNO
+;	ASL
+;	ASL
+;	ASL
+;	ASL
+;	STA BANKCOL
+
+	LDA TYPE
+	CMP #TAMD
+	BNE PRGN1
+
+	LDA #<PRGOLD
+	STA PROGLP2+1
+	LDA #>PRGOLD
+	STA PROGLP2+2
+	JMP PROGLP1
+
+PRGN1	LDA #<PRGNEW
+	STA PROGLP2+1
+	LDA #>PRGNEW
+	STA PROGLP2+2
+	JMP PROGLP1
+
+PROGLP1	LDA #0
+	STA PROGIDX
+	
+PROGLP2	JSR $1234
+	LDX BANKNO
+	STA BANKREG,X
+	LDY PROGIDX
+	LDA (SRCADR),Y
+	STA (DSTADR),Y
+
+	JSR WTDATA
+
+	BMI PROGERR
+
+PROGOK	INC PROGIDX
+	BNE PROGLP2
+	INC SRCADR+1
+	INC DSTADR+1
+	LDA DSTADR+1
+	CMP #>END
+	BNE PROGLP2
+
+PROGEND	CLI
+	LDA #$40
+	STA $D40E
+	RTS
+
+PROGERR	CLI
+	LDA #$40
+	STA $D40E
+	STY DSTADR
+	LDA #$FF
+	RTS
+
+PROGSST JSR SENDSIG
+	LDX BANKNO
+	STA BANKREG,X
+	
+	LDY #0
+PPAGLP	LDA (SRCADR),Y
+	STA (DSTADR),Y
+	INY
+	CPY #$80
+	BNE PPAGLP
+
+	LDY #127
+WTDLP2	LDA (DSTADR),Y
+	EOR (DSTADR),Y
+	AND #$40
+	BNE WTDLP2
+
+	CLC
+	LDA SRCADR
+	ADC #128
+	STA SRCADR
+	BCC NI2
+	INC SRCADR+1
+NI2	CLC
+	LDA DSTADR
+	ADC #128
+	STA DSTADR
+	BCC PROGSST
+	INC DSTADR+1
+	LDA DSTADR+1
+	CMP #>END
+	BEQ SSTEND
+	LSR
+	AND #$0F
+	ORA BANKCOL
+	STA $D01A
+	JMP PROGSST
+
+SSTEND	LDA #$40
+	STA $D40E
+	CLI
+	LDA #0
+	RTS
+
+PWERR	TYA
+	CLC
+	ADC DSTADR
+	STA DSTADR
+	BCC XSST
+	INC DSTADR+1
+XSST	LDA #$40
+	STA $D40E
+	CLI
+	LDA #$FF
+	RTS
+
+VERIFY	LDX BANKNO
+	STA BANKREG,X
+
+	LDY #0
+VERLP	LDA (DSTADR),Y
+	CMP (SRCADR),Y
+	BNE VERERR
+	INY
+	BNE VERLP
+	BEQ VEROK
+
+VERERR	STY DSTADR
+	LDA #$FF
+	RTS
+
+VEROK	INC SRCADR+1
+	INC DSTADR+1
+	LDA DSTADR+1
+	CMP #>END
+	BNE VERIFY
+	LDA #0
+	RTS
+
+	.MACRO ADDSIG ; address, value
+	.IF %0 <> 2
+	.ERROR "ADDSIG requires 2 parameters"
+	.ELSE
+	LDX SIGLEN
+	LDA #>%1
+	LSR
+	LSR
+	LSR
+	LSR
+	LSR
+	CLC
+	ADC BANKOFS
+	STA SIGBUFB,X
+	LDA #<%1
+	STA SIGBUFL,X
+	CLC
+	LDA #>%1
+	AND #$1F
+	ADC #>BASE
+	STA SIGBUFH,X
+	LDA #%2
+	STA SIGBUFA,X
+	INC SIGLEN
+	.ENDIF
+	.ENDM
+
+SETSIG	LDA #0
+	STA SIGLEN
+	LDA TYPE
+	CMP #TAMD40
+	BEQ SIGA40
+
+; signature AM 29F010 / BM 29F040
+	ADDSIG $5555, $AA
+	ADDSIG $2AAA, $55
+	RTS
+
+; signature AMD 29F040 / ST 29F010 / ST 29F040B
+SIGA40	ADDSIG $0555, $AA
+	ADDSIG $02AA, $55
+	RTS
+
+SIGTMP	.BYTE 0
+
+SIGBUFB	.DC 16 0
+SIGBUFL	.DC 16 0
+SIGBUFH	.DC 16 0
+SIGBUFA	.DC 16 0
+
+SIGLEN	.BYTE 0
+
+; set read mode
+SIGREAD	JSR SETSIG
+	ADDSIG $5555, $F0
+	RTS
+
+; chip erase signature
+SIGERAS	JSR SETSIG
+
+	LDA TYPE
+	CMP #TAMD40
+	BNE SERAMD
+	JMP SERA40
+
+; signature AM 29F010 / BM 29F040
+SERAMD	ADDSIG $5555, $80
+	ADDSIG $5555, $AA
+	ADDSIG $2AAA, $55
+	ADDSIG $5555, $10
+	RTS
+
+; signature AMD 29F040 / ST 29F010
+SERA40	ADDSIG $0555, $80
+	ADDSIG $0555, $AA
+	ADDSIG $02AA, $55
+	ADDSIG $0555, $10
+	RTS
+
+; chip id signature
+SIGID	JSR SETSIG
+	LDA TYPE
+	CMP #TAMD
+	BEQ SIDAMD
+	CMP #TAMD40
+	BEQ SIDA40
+;	JMP SIDSST
+
+; id AMD 29F010 / BM 29F040
+SIDAMD	ADDSIG $5555, $90
+	RTS
+
+; id AMD 29F040 / ST 29F010
+SIDA40	ADDSIG $0555, $90
+	RTS
+
+; id SST 29EE010, Winbond 29EE011
+SIDSST	ADDSIG $5555, $80
+	ADDSIG $5555, $AA
+	ADDSIG $2AAA, $55
+	ADDSIG $5555, $60
+	RTS
+
+; program byte/page signature
+SIGPRG	JSR SETSIG
+	LDA TYPE
+	CMP #TAMD40
+	BEQ SPRA40
+
+; program AMD 29F010, SST 29EE010, Winbond 29EE011
+SPRAMD	ADDSIG $5555, $A0
+	RTS
+
+; program AMD 29F040 / ST 29F010
+SPRA40	ADDSIG $0555, $A0
+	RTS
+
+SENDSIG	LDA #0
+	STA SIGTMP
+SSLP	LDY SIGTMP
+	LDX SIGBUFB,Y
+	STA BANKREG,X
+	LDA SIGBUFL,Y
+	STA TMPADR
+	LDA SIGBUFH,Y
+	STA TMPADR+1
+	LDA SIGBUFA,Y
+	LDY #0
+	STA (TMPADR),Y
+	INC SIGTMP
+	LDA SIGTMP
+	CMP SIGLEN
+	BNE SSLP
+	RTS
+
+
+; new fast programming signature for older chips
+
+PRGOLD  LDX BANKOFS
+; $5555 = $AA
+	LDA #$AA
+	STA BANKREG+2,X
+	STA BASE+$1555
+; $2AAA = $55
+	LDA #$55
+	STA BANKREG+1,X
+	STA BASE+$AAA
+; $5555 = $A0
+	LDA #$A0
+	STA BANKREG+2,X
+	STA BASE+$1555
+
+        RTS
+
+; new fast programming signature for newer chips
+
+PRGNEW  LDX BANKOFS
+	STA BANKREG,X
+; $555 = $AA
+	LDA #$AA
+	STA BASE+$555
+; $2AA = $55
+	LDA #$55
+	STA BASE+$2AA
+; $555 = $A0
+	LDA #$A0
+	STA BASE+$555
+
+        RTS
+
+
+
+	.MACRO RDADR
+	STX TMPADR
+	STY TMPADR+1
+	TAY
+	STA BANKREG,Y
+	LDY #0
+	LDA (TMPADR),Y
+	.ENDM
+
+SETID	LDX #5
+	JSR WAIT
+	JSR SIGID
+	JSR SENDSIG
+	LDX #5
+	JSR WAIT
+	RTS
+
+; erase both flash chips
+
+ERASE2	LDA #0
+	STA BANKOFS
+
+;	LDA #'1
+;	JSR PUTCHAR
+
+	JSR ERASE
+	BMI E2ERR
+
+	LDA #64
+	STA BANKOFS
+
+;	LDA #'2
+;	JSR PUTCHAR
+
+	JSR ERASE
+	BMI E2ERR
+	RTS
+
+E2ERR	JSR SETREAD
+	LDY #$FF
+	RTS
+
+; erase complete chip
+
+ERASE	JSR SIGERAS
+	JSR SENDSIG
+
+ERCH2	LDA #<BASE
+	STA DSTADR
+	LDA #>BASE
+	STA DSTADR+1
+
+	LDY #0
+	LDA #$FF
+
+
+DETECT	JSR CARTOFF
+
+	LDA TRIG3
+	BEQ DET0
+
+DETERR	JSR CARTOFF
+	PRINT 0,NOFLTXT
+	LDA #$FF
+	RTS
+
+DET0	JSR CARTON
+	LDA TRIG3
+	BEQ DETERR
+
+	LDA #128
+	STA NUMBANK
+	LDA #0
+	STA BANKOFS
+	LDA #64
+	STA BANKMSK
+
+	LDA #TAMD40
+	STA TYPE
+	JSR SETREAD
+	JSR SETID
+	
+	STA BANKREG
+	LDA BASE
+	CMP #$01
+	BNE NOAMD40
+	LDA BASE+1
+	CMP #$A4
+	BNE NOAMD40
+
+	PRINT 0, DETA40T
+	LDA #0
+	RTS
+
+NOAMD40	LDA BASE
+	CMP #$20
+	BNE NOST40
+	LDA BASE+1
+	CMP #$E2
+	BNE NOST40
+
+	PRINT 0, DETS40T
+	LDA #0
+	RTS
+
+NOST40	LDA #TAMD
+	STA TYPE
+	JSR SETREAD
+	JSR SETID
+
+	LDA BASE
+	CMP #$AD
+	BNE NOBM40
+	LDA BASE+1
+	CMP #$40
+	BNE NOBM40
+
+	PRINT 0, DETB40T
+	LDA #0
+	RTS
+
+NOBM40	PRINT 0, UNKFL
+	LDA #$FF
+	RTS
+
+PUTCHAR	TAY
+	LDA $E407
+	PHA
+	LDA $E406
+	PHA
+	TYA
+	RTS
+
+; flash type
+TYPE	.BYTE 0
+
+; program mode: 
+PMODE	.BYTE 0
+
+; current bank number
+BANKNO	.BYTE 0
+
+; offset and masks for multi-chip 8mbit cart
+BANKMSK	.BYTE 0
+
+.ENDIF
