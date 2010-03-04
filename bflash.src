@@ -155,7 +155,7 @@ DOCOMM3	BPL DOCOMM4
 DOCOMM4	LDA #155
 	JSR PUTCHAR
 
-	BIT MODE
+	LDA MODE
 	CMP #MODEP
 	BNE DOLOOP
 
@@ -386,9 +386,6 @@ TMENUL	= * - TMENU
 TASKER	.BYTE "Completely erase flash cart (y/n)? "
 TASKERL	= * - TASKER
 
-TERAS	.BYTE "erasing cart: "
-TERASL	= * - TERAS
-
 TFILNA	.BYTE "Filename > "
 TFILNAL	= * - TFILNA
 
@@ -396,6 +393,9 @@ TOPENER	.BYTE "Error opening file!",155
 
 TERRADR	.BYTE "Error at "
 TERRADRL = * - TERRADR
+
+TERAS	.BYTE " erasing cart: "
+TERASL	= * - TERAS
 
 TRDDAT	.BYTE " reading data: "
 TRDDATL	= * - TRDDAT
