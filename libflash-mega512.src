@@ -60,9 +60,11 @@ BANKBAS	= $8000	; base address
 
 	.include "libflash-common.src"
 
+; init flash library
+FINIT	JMP ?FINIT
+
 ; enable flash access
 FENABLE
-	SETFADRI 0,0
 	INC $42
 	LDX #0
 	SBANKX

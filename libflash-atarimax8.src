@@ -58,6 +58,9 @@ BANKBAS	= $A000	; base address
 
 	.include "libflash-common.src"
 
+; init flash library
+FINIT   JMP ?FINIT
+
 ; enable flash access
 FENABLE
 	INC $42
