@@ -100,6 +100,40 @@ FADRZERO
 
 	RTS
 
+; setup addresses and check if flash address starts
+; on page boundary
+?FSETUPP
+	JSR ?FCOPADR
+	LDY #0
+	LDA FLASHADI
+	BEQ ?FSETUPP1
+	LDA #$FF
+?FSETUPP1
+	RTS
+
+; setup address for byte mode: add Y to vector
+?FSETUPB
+	TYA		; add Y to flash adress
+	CLC
+	ADC FLASHADR
+	STA FLASHADI
+	LDA FLASHADR+1
+	ADC #0
+	STA FLASHADI+1
+	LDA FLASHADR+2
+	ADC #0
+	STA FLASHADI+2
+	JSR ?FSETADR	; setup absolute adresses
+	TYA		; add Y to data vector
+	CLC
+	ADC DATAADR
+	STA DATAVEC
+	LDA DATAADR+1
+	ADC #0
+	STA DATAVEC+1
+	LDY #0		; set Y=0
+	RTS
+
 ; linear flash address (lo/mid/hi)
 FLASHADR
 	.BYTE 0,0,0
@@ -484,49 +518,55 @@ FTYPE	.BYTE 0
 
 ; write X bytes from DATAADR,Y to FLASHADR,Y
 FWBYTE	STX ?FBCOUNT
-	JSR ?FSETUPA		; setup addresses
+	JSR ?FSETUPB		; setup addresses for byte mode
 
-?FWBYTI	JSR ?SETPROG
+?FWBYTL	JSR ?FSETADR
+
+	JSR ?SETPROG
 	LDA (DATAVEC),Y
 	STA (FLASHVEC),Y	; program data
 	LDX ?BANKRD
 	SBANKX
 	JSR ?WTDATA		; wait for programming to finish
-	BMI ?FXERR		; error
+	BMI ?FBERR		; error
 	LDA (DATAVEC),Y		; verify data
 	CMP (FLASHVEC),Y
-	BNE ?FXERR
-	INY
-	DEC ?FBCOUNT		; next byte?
-	BNE ?FWBYTI
+	BNE ?FBERR
+	INC DATAVEC
+	BNE ?FWBYT1
+	INC DATAVEC+1
+?FWBYT1	INC FLASHADI
+	BNE ?FWBYT2
+	INC FLASHADI+1
+	BNE ?FWBYT2
+	INC FLASHADI+2
+?FWBYT2	DEC ?FBCOUNT		; next byte?
+	BNE ?FWBYTL
 	LDA #0
 	RTS
-
-?FXERR	TYA			; calculate address of error byte
-	CLC
-	ADC FLASHADI
-	STA FLASHADI
-	BCC ?FXERR1
-	INC FLASHADI+1
-	BCC ?FXERR1
-	INC FLASHADI+2
-?FXERR1	LDA #$FF
+?FBERR	LDA #$FF
 	RTS
 
 ; write X pages from DATAADR to FLASHADR
 FWPAGE	STX ?FPCOUNT
-	JSR ?FCOPADR		; copy user-address to internal address
+	JSR ?FSETUPP		; setup adresses and check for page mode
+	BMI ?FPERR
 
-; check if flash address starts on page
-	LDY #0
-	LDA FLASHADI
-	BNE ?FXERR		; no - return an error
+?FWPAG1	JSR ?FSETADR		; setup absolute flash address
 
-?FWPAG1	JSR ?FSETADR		; setup absolute flash addresses
-	LDY #0
-	STY ?FBCOUNT		; write a whole page
-	JSR ?FWBYTI
-	BMI ?FWPAG3		; error
+?FWPAGL JSR ?SETPROG
+	LDA (DATAVEC),Y
+	STA (FLASHVEC),Y	; program data
+	LDX ?BANKRD
+	SBANKX
+	JSR ?WTDATA		; wait for programming to finish
+	BMI ?FPERR		; error
+	LDA (DATAVEC),Y		; verify data
+	CMP (FLASHVEC),Y
+	BNE ?FPERR
+	INY
+	BNE ?FWPAGL
+
 	INC DATAVEC+1
 	INC FLASHADI+1
 	BNE ?FWPAG2
@@ -534,79 +574,112 @@ FWPAGE	STX ?FPCOUNT
 ?FWPAG2	DEC ?FPCOUNT
 	BNE ?FWPAG1
 	LDA #0
-?FWPAG3	RTS
+	RTS
+
+; error in page mode: add Y to current address and return
+?FPERR	TYA			; calculate address of error byte
+	CLC
+	ADC FLASHADI
+	STA FLASHADI
+	BCC ?FPERR1
+	INC FLASHADI+1
+	BCC ?FPERR1
+	INC FLASHADI+2
+?FPERR1	LDA #$FF
+	RTS
+
 
 ; copy X bytes from FLASHADR,Y to DATAADR,Y
 FRBYTE	STX ?FBCOUNT
-	JSR ?FSETUPA		; setup addresses
+	JSR ?FSETUPB		; setup addresses for byte mode
 
-?FRBYTI	LDX ?BANKRD
+?FRBYTL	JSR ?FSETADR
+	LDX ?BANKRD
 	SBANKX
 
-?FRBYT1 LDA (FLASHVEC),Y
+	LDA (FLASHVEC),Y
 	STA (DATAVEC),Y
-	INY
-	DEC ?FBCOUNT
+	INC DATAVEC
 	BNE ?FRBYT1
+	INC DATAVEC+1
+?FRBYT1	INC FLASHADI
+	BNE ?FRBYT2
+	INC FLASHADI+1
+	BNE ?FRBYT2
+	INC FLASHADI+2
+?FRBYT2	DEC ?FBCOUNT
+	BNE ?FRBYTL
 	RTS
 
 ; copy X pages from FLASHADR to DATAADR
 FRPAGE	STX ?FPCOUNT
-	JSR ?FCOPADR
-
-; check if flash address starts on page
-	LDY #0
-	LDA FLASHADI
-	BNE ?FXERR		; no - return an error
+	JSR ?FSETUPP
+	BMI ?FPERR
 
 ?FRPAG1	JSR ?FSETADR
-	LDY #0
-	STY ?FBCOUNT
-	JSR ?FRBYTI
+	LDX ?BANKRD
+	SBANKX
+
+?FRPAGL	LDA (FLASHVEC),Y
+	STA (DATAVEC),Y
+	INY
+	BNE ?FRPAGL
+
 	INC DATAVEC+1
 	INC FLASHADI+1
-	DEC ?FPCOUNT
+	BNE ?FRPAG2
+	INC FLASHADI+2
+?FRPAG2 DEC ?FPCOUNT
 	BNE ?FRPAG1
 	RTS
 
 ; compare X bytes from FLASHADR,Y to DATAADR,Y
 FCBYTE	STX ?FBCOUNT
-	JSR ?FSETUPA		; setup addresses
+	JSR ?FSETUPB		; setup addresses for byte mode
 	
-?FCBYTI	LDX ?BANKRD
+?FCBYT1	JSR ?FSETADR
+	LDX ?BANKRD
 	SBANKX
 
-?FCBYT1 LDA (FLASHVEC),Y
+	LDA (FLASHVEC),Y
 	CMP (DATAVEC),Y
-	BNE ?FCBYT2		; bytes differ
-	INY
-	DEC ?FBCOUNT
+	BNE ?FCBYT4		; bytes differ
+	INC DATAVEC
+	BNE ?FCBYT2
+	INC DATAVEC+1
+?FCBYT2
+	INC FLASHADI
+	BNE ?FCBYT3
+	INC FLASHADI+1
+	BNE ?FCBYT3
+	INC FLASHADI+2
+?FCBYT3 DEC ?FBCOUNT
 	BNE ?FCBYT1
 	LDA #0
 	RTS
-?FCBYT2	JMP ?FXERR
+?FCBYT4	JMP ?FBERR
 
 ; compare X pages from FLASHADR to DATAADR
 FCPAGE	STX ?FPCOUNT
-	JSR ?FCOPADR
-
-; check if flash address starts on page
-	LDY #0
-	LDA FLASHADI
-	BEQ ?FCPAG1
-	JMP ?FXERR              ; no - return an error
+	JSR ?FSETUPP		; setup adresses and check for page start
+	BMI ?FCPAG3
 
 ?FCPAG1	JSR ?FSETADR
-	LDY #0
-	STY ?FBCOUNT
-	JSR FCBYTE
-	BMI ?FCPAG2
+	LDX ?BANKRD
+	SBANKX
+
+?FCPAGL	LDA (DATAVEC),Y
+	CMP (FLASHVEC),Y
+	BNE ?FCPAG3
 	INC DATAVEC+1
 	INC FLASHADI+1
-	DEC ?FPCOUNT
+	BNE ?FCPAG2
+	INC FLASHADI+2
+?FCPAG2	DEC ?FPCOUNT
 	BNE ?FCPAG1
 	LDA #0
-?FCPAG2	RTS
+	RTS
+?FCPAG3	JMP ?FPERR
 
 ?FBCOUNT	.BYTE 0		; byte counter
 ?FPCOUNT	.BYTE 0		; page counter
