@@ -49,54 +49,70 @@ FADRZERO
 ; setup all addresses
 ?FSETUPA
 	JSR ?FCOPADR
+	JMP ?FSETADR
 
-; convert internal flash address to absolute address/bank
-?FSETADR
-	LDA FLASHADI
-	STA FLASHVEC
-	LDA FLASHADI+1
-	STA FLASHVEC+1
-	LDA FLASHADI+2
-	STA ?BANKRD
-
+; convert relative address in FLASHTMP (lo, mid) and FBANKTMP (hi)
+; into absolute addresses
+FSETTMP
 .IF BANKSIZ = 16
+	LDA FLASHTMP+1
+	PHA
 ; 16k banks
-	ASL FLASHVEC+1
-	ROL ?BANKRD
-	ASL FLASHVEC+1
-	ROL ?BANKRD
-	LDA FLASHADI+1
+	ASL FLASHTMP+1
+	ROL FBANKTMP
+	ASL FLASHTMP+1
+	ROL FBANKTMP
+	PLA
 	AND #$3F
 .ELSE
-	ASL FLASHVEC+1
-	ROL ?BANKRD
-	ASL FLASHVEC+1
-	ROL ?BANKRD
-	ASL FLASHVEC+1
-	ROL ?BANKRD
-	LDA FLASHADI+1
+	ASL FLASHTMP+1
+	ROL FBANKTMP
+	ASL FLASHTMP+1
+	ROL FBANKTMP
+	ASL FLASHTMP+1
+	ROL FBANKTMP
+	PLA
 	AND #$1F
 .ENDIF
 	CLC
 	ADC #>BANKBAS
+	STA FLASHTMP+1
+	RTS
+
+; convert internal flash address in FLASHADI to absolute address/bank,
+; sets FLASHVEC (absolute adress) and ?BANKRD/WR, ?BASERD/WR
+?FSETADR
+; copy address in temporary storage
+	LDA FLASHADI
+	STA FLASHTMP
+	LDA FLASHADI+1
+	STA FLASHTMP+1
+	LDA FLASHADI+2
+	STA FBANKTMP
+	JSR FSETTMP
+
+; copy address from FLASHTMP to FLASHVEC
+	LDA FLASHTMP
+	STA FLASHVEC
+	LDA FLASHTMP+1
 	STA FLASHVEC+1
 
-; setup banks
-	LDA ?BANKRD
-	CBASEWR
-	STA ?BASEWR
-
-	LDA ?BANKRD
+; setup bank registers
+	LDA FBANKTMP
 	CBASERD
 	STA ?BASERD
 
-	LDA ?BANKRD
-	CBANKWR
-	STA ?BANKWR
+	LDA FBANKTMP
+	CBASEWR
+	STA ?BASEWR
 
-	LDA ?BANKRD
+	LDA FBANKTMP
 	CBANKRD
 	STA ?BANKRD
+
+	LDA FBANKTMP
+	CBANKWR
+	STA ?BANKWR
 
 	RTS
 
@@ -145,6 +161,7 @@ FLASHADI
 ; user data address
 DATAADR	.BYTE 0,0
 
+FBANKTMP .BYTE 0 ; temporary bank register
 ?BANKRD	.BYTE 0	; current bank number for reading
 ?BANKWR	.BYTE 0	; current bank number for writing
 ?BASERD	.BYTE 0	; base bank number for reading signatures etc.
@@ -160,46 +177,38 @@ DATAADR	.BYTE 0,0
 ; common initialization stuff
 ?FINIT	JMP FADRZERO	; just clear flash address
 
+; "poke" values into flash
+	.MACRO FPOKE ; ofs, value
+	.IF %0 <> 2
+	.ERROR "FPOKE needs 2 parameters"
+	.ENDIF
+	LDA #0
+	STA FBANKTMP
+	LDA #<[%1]
+	STA FLASHTMP
+	LDA #>[%1]
+	STA FLASHTMP+1
+	JSR FSETTMP
+	LDA FBANKTMP
+	CBANKWR
+	TAX
+	SBANKX
+	LDX #0
+	LDA #[%2]
+	STA (FLASHTMP,X)
+	.ENDM
+
 ; common signature
-?SIG	LDX ?BASEWR
-	LDA ?ITYPE
+?SIG	LDA ?ITYPE
 	CMP #?ITLO
 	BNE ?SIG1
 
-	SBANKX
-; $555 = $AA
-	LDA #$AA
-	STA BANKBAS+$555
-; $2AA = $55
-	LDA #$55
-	STA BANKBAS+$2AA
+	FPOKE $555,$AA
+	FPOKE $2AA,$55
 	RTS
 
-?SIG1
-.IF BANKSIZ = 16
-; $5555 = $AA
-	INX
-	SBANKX
-	LDA #$AA
-	STA BANKBAS+$1555
-; $2AAA = $55
-	DEX
-	SBANKX
-	LDA #$55
-	STA BANKBAS+$2AAA
-.ELSE
-; $5555 = $AA
-	INX
-	INX
-	SBANKX
-	LDA #$AA
-	STA BANKBAS+$1555
-; $2AAA = $55
-	DEX
-	SBANKX
-	LDA #$55
-	STA BANKBAS+$AAA
-.ENDIF
+?SIG1	FPOKE $5555,$AA
+	FPOKE $2AAA,$55
 	RTS
 
 
@@ -213,208 +222,69 @@ DATAADR	.BYTE 0,0
 	BNE ?SETREA1
 
 ; write $F0 to any memory location
-	LDX ?BASEWR
-	SBANKX
-	LDA #$F0
-	STA BANKBAS
+	FPOKE 0, $F0
+
 ; set bank for reading data
-	LDX ?BASERD
+?XRBANK	LDX ?BASERD
 	SBANKX
 	RTS
 
 ?SETREA1
-	JSR ?SIG
-	LDX ?BASEWR
+	JSR ?SIG		; write common signature
+	FPOKE $5555,$F0
+	JMP ?XRBANK
 
-.IF BANKSIZ = 16
-; $5555 = $F0
-	INX
-	SBANKX
-	LDA #$F0
-	STA BANKBAS+$1555
-.ELSE
-; $5555 = $F0
-	INX
-	INX
-	SBANKX
-	LDA #$F0
-	STA BANKBAS+$1555
-.ENDIF
-; set bank for reading data
-	LDX ?BASERD
-	SBANKX
-	RTS
 
 ; put flash into "ID/autoselect" mode
-?SETID
-	JSR ?SIG
-	LDX ?BASEWR
+?SETID	JSR ?SIG
 
 	LDA ?ITYPE
 	CMP #?ITLO
 	BNE ?SETID1
 
-; $555 = $90
-	SBANKX
-	LDA #$90
-	STA BANKBAS+$555
+	FPOKE $555,$90
+
 ; set bank for reading ID
-	LDX ?BASERD
+?XRBASE	LDX ?BASERD
 	SBANKX
 	RTS
 
-?SETID1
-
-.IF BANKSIZ = 16
-; $5555 = $90
-	INX
-	SBANKX
-	LDA #$90
-	STA BANKBAS+$1555
-.ELSE
-; $5555 = $90
-	INX
-	INX
-	SBANKX
-	LDA #$90
-	STA BANKBAS+$1555
-.ENDIF
-; set bank for reading ID
-	LDX ?BASERD
-	SBANKX
-	RTS
-
-; put flash into "byte program" mode
-?SETPROG
-	JSR ?SIG
-	LDX ?BASEWR
-
-	LDA ?ITYPE
-	CMP #?ITLO
-	BNE ?SETPRO1
-
-; $555 = $A0
-	SBANKX
-	LDA #$A0
-	STA BANKBAS+$555
-
-; set current bank number
-	LDX ?BANKWR
-	SBANKX
-	RTS
-
-?SETPRO1
-
-.IF BANKSIZ = 16
-; $5555 = $A0
-	INX
-	SBANKX
-	LDA #$A0
-	STA BANKBAS+$1555
-.ELSE
-; $5555 = $A0
-	INX
-	INX
-	SBANKX
-	LDA #$A0
-	STA BANKBAS+$1555
-.ENDIF
-; set current bank number
-	LDX ?BANKWR
-	SBANKX
-	RTS
+?SETID1	FPOKE $5555,$90
+	JMP ?XRBASE
 
 ; common signature for chip/block erase
 ?SIGERAS
 	JSR ?SIG
-	LDX ?BASEWR
 
 	LDA ?ITYPE
 	CMP #?ITLO
 	BNE ?SIGERA1
 
-; $555 = $80
-	SBANKX
-	LDA #$80
-	STA BANKBAS+$555
-; $555 = $AA
-	LDA #$AA
-	STA BANKBAS+$555
-; $2AA = $55
-	LDA #$55
-	STA BANKBAS+$2AA
+	FPOKE $555,$80
+	FPOKE $555,$AA
+	FPOKE $2AA,$55
 	RTS
 
 ?SIGERA1
-.IF BANKSIZ = 16
-; $5555 = $80
-	INX
-	SBANKX
-	LDA #$80
-	STA BANKBAS+$1555
-; $5555 = $AA
-	LDA #$AA
-	STA BANKBAS+$1555
-; $2AAA = $55
-	DEX
-	SBANKX
-	LDA #$55
-	STA BANKBAS+$2AAA
-.ELSE
-; $5555 = $80
-	INX
-	INX
-	SBANKX
-	LDA #$80
-	STA BANKBAS+$1555
-; $5555 = $AA
-	LDA #$AA
-	STA BANKBAS+$1555
-; $2AAA = $55
-	DEX
-	SBANKX
-	LDA #$55
-	STA BANKBAS+$AAA
-.ENDIF
+	FPOKE $5555,$80
+	FPOKE $5555,$AA
+	FPOKE $2AAA,$55
 	RTS
 
 ; put flash into "chip erase" mode
 ?SETCERA
 	JSR ?SIGERAS
-	LDX ?BASEWR
 
 	LDA ?ITYPE
 	CMP #?ITLO
 	BNE ?SETCER1
 
-	SBANKX
-; $555 = $10
-	LDA #$10
-	STA BANKBAS+$555
-; set bank for reading status
-	LDX ?BANKRD
-	SBANKX
-	RTS
+	FPOKE $555,$10
+	JMP ?XRBANK
 
 ?SETCER1
-.IF BANKSIZ = 16
-; $5555 = $10
-	INX
-	SBANKX
-	LDA #$10
-	STA BANKBAS+$1555
-.ELSE
-; $5555 = $10
-	INX
-	INX
-	SBANKX
-	LDA #$10
-	STA BANKBAS+$1555
-.ENDIF
-; set bank for reading status
-	LDX ?BANKRD
-	SBANKX
-	RTS
+	FPOKE $5555,$10
+	JMP ?XRBANK
 
 ; put flash into "Block erase" mode (bank must be set correctly!)
 ?SETBERA
@@ -426,9 +296,71 @@ DATAADR	.BYTE 0,0
 	LDA #$30
 	LDY #0
 	STA (FLASHVEC),Y
+	JMP ?XRBANK
 
-; set bank for reading status
-	LDX ?BANKRD
+
+; put flash into "byte program" mode
+?SETPROG
+	LDX ?BASEWR
+
+	LDA ?ITYPE
+	CMP #?ITLO
+	BNE ?SETPRO1
+
+	SBANKX
+; $555 = $AA
+	LDA #$AA
+	STA BANKBAS+$555
+; $2AA = $55
+	LDA #$55
+	STA BANKBAS+$2AA
+; $555 = $A0
+	LDA #$A0
+	STA BANKBAS+$555
+
+; set current bank number
+	LDX ?BANKWR
+	SBANKX
+	RTS
+
+?SETPRO1
+
+.IF BANKSIZ = 16
+; $5555 = $AA
+	INX
+	SBANKX
+	LDA #$AA
+	STA BANKBAS+$1555
+; $2AAA = $55
+	DEX
+	SBANKX
+	LDA #$55
+	STA BANKBAS+$2AAA
+; $5555 = $A0
+	INX
+	SBANKX
+	LDA #$A0
+	STA BANKBAS+$1555
+.ELSE
+; $5555 = $AA
+	INX
+	INX
+	SBANKX
+	LDA #$AA
+	STA BANKBAS+$1555
+; $2AAA = $55
+	DEX
+	SBANKX
+	LDA #$55
+	STA BANKBAS+$AAA
+; $5555 = $A0
+	INX
+	SBANKX
+	LDA #$A0
+	STA BANKBAS+$1555
+.ENDIF
+; set current bank number
+	LDX ?BANKWR
 	SBANKX
 	RTS
 

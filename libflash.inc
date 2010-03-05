@@ -19,6 +19,7 @@
 ; zero-page vectors (only used internally)
 FLASHVEC	= $E0 ; ,$E1: absolute flash address
 DATAVEC		= $E2 ; ,$E3: data buffer vector
+FLASHTMP	= $E4 ; ,$E5: temporary vector
 
 ; flash types
 TAMD10	= 0	; AMD 29F010
