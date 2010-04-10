@@ -14,7 +14,7 @@ testa.com: testlib.src $(LIBFLASHSRC) iohelp.src
 	mkdir -p disk
 	cp -f $@ disk
 
-testb.com: testlib.src $(LIBFLASHSRC) iohelp.src
+testb.com: testlib.src $(LIBFLASHSRC) iohelp.src arith.src getdens.src
 	$(ATASM) $(ASMFLAGS) -dBERND -o$@ $<
 	mkdir -p disk
 	cp -f $@ disk

@@ -169,6 +169,82 @@ PERROR	PRINT 0, ERRT
 OKT	.BYTE "OK", 155
 ERRT	.BYTE "ERROR", 155
 
+; convert 16bit number (X=lo, Y=hi) into 5-digit decimal number
+; with leading zeroes (stored in DECBUF)
+
+TODEC	STX ?DECTMP
+	STY ?DECTMP+1
+	LDY #0
+?TODEC0	LDX #'0
+?TODEC1	SEC
+	LDA ?DECTMP
+	SBC ?DECLO,Y
+	PHA
+	LDA ?DECTMP+1
+	SBC ?DECHI,Y
+	BCC ?TODEC2	; finished, result is <0
+	STA ?DECTMP+1
+	PLA
+	STA ?DECTMP
+	INX
+	BNE ?TODEC1	; always
+?TODEC2	PLA
+	TXA
+	STA DECBUF,Y
+	INY
+	CPY #4
+	BNE ?TODEC0
+	CLC
+	LDA ?DECTMP
+	ADC #'0
+	STA DECBUF,Y
+	RTS
+
+?DECTMP	.WORD 0,0
+
+?DECLO	.BYTE <10000
+	.BYTE <1000
+	.BYTE <100
+	.BYTE <10
+
+?DECHI	.BYTE >10000
+	.BYTE >1000
+	.BYTE >100
+	.BYTE >10
+
+DECBUF	.BYTE "00000"
+	.BYTE 155	; add EOL so DECBUF can be PRINTed
+
+; convert leading zeroes in DECBUF into spaces
+DEC0SP	LDX #0
+?DEC0SP1
+	LDA DECBUF,X
+	CMP #'0
+	BNE ?DEC0SP2
+	LDA #32
+	STA DECBUF,X
+	INX
+	CPX #4
+	BNE ?DEC0SP1
+?DEC0SP2
+	RTS
+
+; return number of digits in DECBUF (in Y, 1..5) and index
+; of first non-zero digit (in X, 0..4)
+DECDIG	LDX #0
+	LDY #5
+?DECDIG1
+	LDA DECBUF,X
+	CMP #'0
+	BNE ?DECDIG2
+	DEY
+	INX
+	CPX #4
+	BNE ?DECDIG1
+?DECDIG2
+	RTS
+
+
 .if 0
 ; print bank number
 PBANK	CLC
