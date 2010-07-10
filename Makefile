@@ -1,26 +1,32 @@
-all: testa.com testb.com bflash.com bflash.atr
+all: testa.com testf.com testm.com bflash.com bflash.atr
 
-ATASM=atasm
+ATASM ?= atasm
 
 ASMFLAGS=
 #ASMFLAGS = -v -s
 
-LIBFLASHSRC = libflash.inc libflash-common.src \
+LIBFLASHSRC = libflash.inc libflash.src \
 	libflash-atarimax8.src \
+	libflash-freezer.src \
 	libflash-mega512.src
 
 testa.com: testlib.src $(LIBFLASHSRC) iohelp.src
-	$(ATASM) $(ASMFLAGS) -o$@ $<
+	$(ATASM) $(ASMFLAGS) -dATARIMAX8 -o$@ $<
 	mkdir -p disk
 	cp -f $@ disk
 
-testb.com: testlib.src $(LIBFLASHSRC) iohelp.src arith.src getdens.src
-	$(ATASM) $(ASMFLAGS) -dBERND -o$@ $<
+testf.com: testlib.src $(LIBFLASHSRC) iohelp.src
+	$(ATASM) $(ASMFLAGS) -dFREEZER -o$@ $<
+	mkdir -p disk
+	cp -f $@ disk
+
+testm.com: testlib.src $(LIBFLASHSRC) iohelp.src arith.src getdens.src
+	$(ATASM) $(ASMFLAGS) -dMEGA512 -o$@ $<
 	mkdir -p disk
 	cp -f $@ disk
 
 bflash.com: bflash.src $(LIBFLASHSRC) iohelp.src
-	$(ATASM) $(ASMFLAGS) -dBERND -o$@ $<
+	$(ATASM) $(ASMFLAGS) -dMEGA512 -o$@ $<
 	mkdir -p disk
 	cp -f $@ disk
 

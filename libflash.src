@@ -16,12 +16,25 @@
 ;  along with this program; if not, write to the Free Software
 ;  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
+.if .def ATARIMAX8
+	.include "libflash-atarimax8.src"
+.endif
+
+.if .def FREEZER
+	.include "libflash-freezer.src"
+.endif
+
+.if .def MEGA512
+	.include "libflash-mega512.src"
+.endif
+
 ; initialize flash address to 0
 FADRZERO
 	LDA #0
 	STA FLASHADR
 	STA FLASHADR+1
 	STA FLASHADR+2
+	STA FLASHADR+3
 	RTS
 
 ; copy external flash and user data addresses to
@@ -80,7 +93,7 @@ FSETTMP
 	RTS
 
 ; convert internal flash address in FLASHADI to absolute address/bank,
-; sets FLASHVEC (absolute adress) and ?BANKRD/WR, ?BASERD/WR
+; sets FLASHVEC (absolute adress) and ?BANKNO/WR, ?BASEBNK/WR
 ?FSETADR
 ; copy address in temporary storage
 	LDA FLASHADI
@@ -99,36 +112,32 @@ FSETTMP
 
 ; setup bank registers
 	LDA FBANKTMP
-	CBASERD
-	STA ?BASERD
+	CBASE
+	STA ?BASEBNK
 
 	LDA FBANKTMP
-	CBASEWR
-	STA ?BASEWR
-
-	LDA FBANKTMP
-	CBANKRD
-	STA ?BANKRD
-
-	LDA FBANKTMP
-	CBANKWR
-	STA ?BANKWR
-
+	CBANK
+	STA ?BANKNO
 	RTS
 
 ; setup addresses and check if flash address starts
 ; on page boundary
 ?FSETUPP
+	STX ?FPCOUNT
 	JSR ?FCOPADR
 	LDY #0
+	STY FERROR	; clear error flag
 	LDA FLASHADI
 	BEQ ?FSETUPP1
-	LDA #$FF
+	LDA #EFLPAE	; set "page address error"
+	STA FERROR
 ?FSETUPP1
 	RTS
 
 ; setup address for byte mode: add Y to vector
 ?FSETUPB
+	STX ?FBCOUNT
+
 	TYA		; add Y to flash adress
 	CLC
 	ADC FLASHADR
@@ -148,24 +157,40 @@ FSETTMP
 	ADC #0
 	STA DATAVEC+1
 	LDY #0		; set Y=0
+	STA FERROR	; clear error flag
 	RTS
 
 ; linear flash address (lo/mid/hi)
+; note: 4th byte is unused
 FLASHADR
-	.BYTE 0,0,0
+	.BYTE 0,0,0,0
 
 ; linear flash address (lo/mid/hi), internal use
+; note: 4th byte is unused
 FLASHADI
-	.BYTE 0,0,0
+	.BYTE 0,0,0,0
+
+; error variable, set when flashing fails:
+; 0 = OK
+; 1 = flash error (timeout)
+; 2 = data error (verify failed)
+; $80 = address error, eg FWPAGE called on non page boundary
+FERROR	.BYTE 0
+
+; data in flash in case of a verify error
+FERRFD	.BYTE 0
+; user data in case of a verify error
+FERRUD	.BYTE 0
 
 ; user data address
 DATAADR	.BYTE 0,0
 
 FBANKTMP .BYTE 0 ; temporary bank register
-?BANKRD	.BYTE 0	; current bank number for reading
-?BANKWR	.BYTE 0	; current bank number for writing
-?BASERD	.BYTE 0	; base bank number for reading signatures etc.
-?BASEWR	.BYTE 0 ; base bank number for writing signatures etc.
+?BANKNO	.BYTE 0	; current bank number
+?BASEBNK	.BYTE 0	; base bank number for signatures etc.
+
+?FBCOUNT	.BYTE 0		; byte counter
+?FPCOUNT	.BYTE 0		; page counter
 
 ; internal flash types:
 ?ITHI	= 0	; $5555 addresses: AMD 29F010 / BM 29F040
@@ -173,8 +198,6 @@ FBANKTMP .BYTE 0 ; temporary bank register
 ;TSSTWIN	= 2	; SST 29EE010 / Winbond 29EE011
 
 ?ITYPE	.BYTE 0
-
-MBASEWR	= ?BASEWR
 
 ; common initialization stuff
 ?FINIT	JMP FADRZERO	; just clear flash address
@@ -192,8 +215,7 @@ MBASEWR	= ?BASEWR
 	STA FLASHTMP+1
 	JSR FSETTMP
 	LDA FBANKTMP
-	CBANKWR
-	ORA MBASEWR
+	CBANK
 	TAX
 	SBANKX
 	LDX #0
@@ -228,7 +250,7 @@ MBASEWR	= ?BASEWR
 	FPOKE 0, $F0
 
 ; set bank for reading data
-?XRBANK	LDX ?BASERD
+?XRBANK	LDX ?BASEBNK
 	SBANKX
 	RTS
 
@@ -248,7 +270,7 @@ MBASEWR	= ?BASEWR
 	FPOKE $555,$90
 
 ; set bank for reading ID
-?XRBASE	LDX ?BASERD
+?XRBASE	LDX ?BASEBNK
 	SBANKX
 	RTS
 
@@ -292,7 +314,7 @@ MBASEWR	= ?BASEWR
 ; put flash into "Block erase" mode (bank must be set correctly!)
 ?SETBERA
 	JSR ?SIGERAS
-	LDX ?BANKWR
+	LDX ?BANKNO
 	SBANKX
 
 ; flashadr = $30
@@ -304,7 +326,7 @@ MBASEWR	= ?BASEWR
 
 ; put flash into "byte program" mode
 ?SETPROG
-	LDX ?BASEWR
+	LDX ?BASEBNK
 
 	LDA ?ITYPE
 	CMP #?ITLO
@@ -322,7 +344,7 @@ MBASEWR	= ?BASEWR
 	STA BANKBAS+$555
 
 ; set current bank number
-	LDX ?BANKWR
+	LDX ?BANKNO
 	SBANKX
 	RTS
 
@@ -363,7 +385,7 @@ MBASEWR	= ?BASEWR
 	STA BANKBAS+$1555
 .ENDIF
 ; set current bank number
-	LDX ?BANKWR
+	LDX ?BANKNO
 	SBANKX
 	RTS
 
@@ -396,7 +418,7 @@ FDETECT	JSR ?FSETUPA	; setup addresses
 	LDA BANKBAS+1	; check device ID
 	CMP ?IDHI+2,X
 	BNE ?DET1
-	JMP ?SETREAD	; found chip, return
+	BEQ ?DET4
 
 ; detect flash chips with "low" signatures
 ?DET2	LDX #253	; start at index -3
@@ -412,9 +434,95 @@ FDETECT	JSR ?FSETUPA	; setup addresses
 	LDA BANKBAS+1	; check device ID
 	CMP ?IDLO+2,X
 	BNE ?DET3
-	JMP ?SETREAD	; found chip, return
 
-?DET4	JMP ?SETREAD	; try to leave ID mode anyways
+; setup flash/bank sizes etc.
+?DET4	
+; zero out unused padding bytes
+	LDA #0
+	STA FSIZE+3
+	STA FBLKSIZ+3
+	STA FBLKMSK+3
+
+; check flash type, first 512k types
+	LDA FTYPE
+	CMP #TAMD40B
+	BEQ ?DET512
+	CMP #TST40B
+	BEQ ?DET512
+	CMP #TBM40
+	BEQ ?DET512
+
+; and now 128k types
+	CMP #TAMD10
+	BEQ ?DET128
+	CMP #TAMD10B
+	BEQ ?DET128
+	CMP #TST10B
+	BEQ ?DET128
+
+; no flash - set dummy values
+	LDA #0
+	STA FSIZE
+	STA FSIZE+1
+	STA FSIZE+2
+	STA FBLKSIZ
+	STA FBLKSIZ+1
+	STA FBLKSIZ+2
+	STA FNUMBLK
+	LDA #$FF
+	STA FBLKMSK
+	STA FBLKMSK+1
+	STA FBLKMSK+1
+	JMP ?SETREAD	; try to leave ID mode anyways
+
+?DET512	LDA #0		; flash size 512k
+	STA FSIZE
+	STA FSIZE+1
+	LDA #8
+	STA FSIZE+2
+
+	LDA #0		; block size 64k
+	STA FBLKSIZ
+	STA FBLKSIZ+1
+	LDA #1
+	STA FBLKSIZ+2
+
+	LDA #8		; 8 blocks
+	STA FNUMBLK
+
+	LDA #$FF	; block mask is $00FFFF
+	STA FBLKMSK
+	STA FBLKMSK+1
+	LDA #0
+	STA FBLKMSK+2
+	JMP ?SETREAD
+
+?DET128	LDA #0		; flash size 128k
+	STA FSIZE
+	STA FSIZE+1
+	LDA #2
+	STA FSIZE+2
+
+	LDA #0		; block size 16k
+	STA FBLKSIZ
+	STA FBLKSIZ+2
+	LDA #$40
+	STA FBLKSIZ+1
+
+	LDA #8		; 8 blocks
+	STA FNUMBLK
+
+	LDA #$FF	; block mask is $003FFF
+	STA FBLKMSK
+	LDA #$3F
+	STA FBLKMSK+1
+	LDA #0
+	STA FBLKMSK+2
+	JMP ?SETREAD
+
+; detection was OK, setup bank sizes etc.
+?DET5	JSR ?SETREAD
+	RTS
 
 ; ID tables
 ; format: chip-type, manufacturer ID, device ID
@@ -429,7 +537,21 @@ FDETECT	JSR ?FSETUPA	; setup addresses
 	.BYTE TST40B, $20, $E2	; ST 29F040B
 	.BYTE $FF,$FF,$FF	; end of table
 
+; flash type ($FF means no flash)
 FTYPE	.BYTE 0
+
+; flash size in bytes (4th byte unused)
+FSIZE	.BYTE 0,0,0,0
+
+; number of flash blocks (0 means no blocks)
+FNUMBLK	.BYTE 0
+
+; size of a flash block (4th byte unused)
+FBLKSIZ	.BYTE 0,0,0,0
+
+; mask to apply to an address to get the block starting address
+; (4th byte unused)
+FBLKMSK	.BYTE 0,0,0,0
 
 ; DQ7 polling algorithm
 ?WTDATA	AND #$80
@@ -452,21 +574,18 @@ FTYPE	.BYTE 0
 ?WTBYTE	.BYTE 0
 
 ; write X bytes from DATAADR,Y to FLASHADR,Y
-FWBYTE	STX ?FBCOUNT
-	JSR ?FSETUPB		; setup addresses for byte mode
+FWBYTE	JSR ?FSETUPB		; setup addresses for byte mode
 
 ?FWBYTL	JSR ?FSETADR
 
 	JSR ?SETPROG
 	LDA (DATAVEC),Y
 	STA (FLASHVEC),Y	; program data
-	LDX ?BANKRD
-	SBANKX
 	JSR ?WTDATA		; wait for programming to finish
-	BMI ?FBERR		; error
-	LDA (DATAVEC),Y		; verify data
-	CMP (FLASHVEC),Y
-	BNE ?FBERR
+	BMI ?FBERR1		; error 1
+	LDA (FLASHVEC),Y	; verify data
+	CMP (DATAVEC),Y
+	BNE ?FBERR2		; error 2
 	INC DATAVEC
 	BNE ?FWBYT1
 	INC DATAVEC+1
@@ -479,12 +598,19 @@ FWBYTE	STX ?FBCOUNT
 	BNE ?FWBYTL
 	LDA #0
 	RTS
-?FBERR	LDA #$FF
+
+?FBERR2 STA FERRFD
+	LDA (DATAVEC),Y
+	STA FERRUD
+	INC FERROR
+?FBERR1	INC FERROR
+?FBERR	LDA FERROR
+	ORA #$80
+	STA FERROR
 	RTS
 
 ; write X pages from DATAADR to FLASHADR
-FWPAGE	STX ?FPCOUNT
-	JSR ?FSETUPP		; setup adresses and check for page mode
+FWPAGE	JSR ?FSETUPP		; setup adresses and check for page mode
 	BMI ?FPERR
 
 ?FWPAG1	JSR ?FSETADR		; setup absolute flash address
@@ -492,13 +618,11 @@ FWPAGE	STX ?FPCOUNT
 ?FWPAGL JSR ?SETPROG
 	LDA (DATAVEC),Y
 	STA (FLASHVEC),Y	; program data
-	LDX ?BANKRD
-	SBANKX
 	JSR ?WTDATA		; wait for programming to finish
-	BMI ?FPERR		; error
-	LDA (DATAVEC),Y		; verify data
-	CMP (FLASHVEC),Y
-	BNE ?FPERR
+	BMI ?FPERR1		; error
+	LDA (FLASHVEC),Y
+	CMP (DATAVEC),Y		; verify data
+	BNE ?FPERR2
 	INY
 	BNE ?FWPAGL
 
@@ -512,26 +636,32 @@ FWPAGE	STX ?FPCOUNT
 	RTS
 
 ; error in page mode: add Y to current address and return
+?FPERR2	STA FERRFD
+	LDA (DATAVEC),Y
+	STA FERRUD
+	INC FERROR
+?FPERR1	INC FERROR
+
 ?FPERR	TYA			; calculate address of error byte
 	CLC
 	ADC FLASHADI
 	STA FLASHADI
-	BCC ?FPERR1
+	BCC ?FPERR3
 	INC FLASHADI+1
-	BCC ?FPERR1
+	BCC ?FPERR3
 	INC FLASHADI+2
-?FPERR1	LDA #$FF
+?FPERR3	LDA FERROR
+	ORA #$80
+	STA FERROR
 	RTS
 
 
 ; copy X bytes from FLASHADR,Y to DATAADR,Y
-FRBYTE	STX ?FBCOUNT
-	JSR ?FSETUPB		; setup addresses for byte mode
+FRBYTE	JSR ?FSETUPB		; setup addresses for byte mode
 
 ?FRBYTL	JSR ?FSETADR
-	LDX ?BANKRD
+	LDX ?BANKNO
 	SBANKX
-
 	LDA (FLASHVEC),Y
 	STA (DATAVEC),Y
 	INC DATAVEC
@@ -544,15 +674,16 @@ FRBYTE	STX ?FBCOUNT
 	INC FLASHADI+2
 ?FRBYT2	DEC ?FBCOUNT
 	BNE ?FRBYTL
+	LDA #0
 	RTS
 
 ; copy X pages from FLASHADR to DATAADR
-FRPAGE	STX ?FPCOUNT
-	JSR ?FSETUPP
-	BMI ?FPERR
+FRPAGE	JSR ?FSETUPP
+	BPL ?FRPAG1
+	JMP ?FPERR
 
 ?FRPAG1	JSR ?FSETADR
-	LDX ?BANKRD
+	LDX ?BANKNO
 	SBANKX
 
 ?FRPAGL	LDA (FLASHVEC),Y
@@ -566,14 +697,14 @@ FRPAGE	STX ?FPCOUNT
 	INC FLASHADI+2
 ?FRPAG2 DEC ?FPCOUNT
 	BNE ?FRPAG1
+	LDA #0
 	RTS
 
 ; compare X bytes from FLASHADR,Y to DATAADR,Y
-FCBYTE	STX ?FBCOUNT
-	JSR ?FSETUPB		; setup addresses for byte mode
+FCBYTE	JSR ?FSETUPB		; setup addresses for byte mode
 	
 ?FCBYT1	JSR ?FSETADR
-	LDX ?BANKRD
+	LDX ?BANKNO
 	SBANKX
 
 	LDA (FLASHVEC),Y
@@ -592,19 +723,19 @@ FCBYTE	STX ?FBCOUNT
 	BNE ?FCBYT1
 	LDA #0
 	RTS
-?FCBYT4	JMP ?FBERR
+?FCBYT4	JMP ?FBERR2
 
 ; compare X pages from FLASHADR to DATAADR
-FCPAGE	STX ?FPCOUNT
-	JSR ?FSETUPP		; setup adresses and check for page start
-	BMI ?FCPAG3
+FCPAGE	JSR ?FSETUPP		; setup adresses and check for page start
+	BPL ?FCPAG1
+	JMP ?FPERR
 
 ?FCPAG1	JSR ?FSETADR
-	LDX ?BANKRD
+	LDX ?BANKNO
 	SBANKX
 
-?FCPAGL	LDA (DATAVEC),Y
-	CMP (FLASHVEC),Y
+?FCPAGL	LDA (FLASHVEC),Y
+	CMP (DATAVEC),Y
 	BNE ?FCPAG3
 	INC DATAVEC+1
 	INC FLASHADI+1
@@ -614,21 +745,23 @@ FCPAGE	STX ?FPCOUNT
 	BNE ?FCPAG1
 	LDA #0
 	RTS
-?FCPAG3	JMP ?FPERR
-
-?FBCOUNT	.BYTE 0		; byte counter
-?FPCOUNT	.BYTE 0		; page counter
+?FCPAG3	JMP ?FPERR2
 
 ; completely erase flash chip
 FCERAS	JSR ?FSETUPA		; setup addresses
 	JSR ?SETCERA
-	LDA #$FF
+?FCERA1	LDA #$FF
 	LDY #0
-	JMP ?WTDATA
+	STY FERROR
+	JSR ?WTDATA
+	BPL ?FCERA2
+	LDA #EFLFTO
+	STA FERROR
+?FCERA2	LDA FERROR
+	RTS
 
 ; erase flash bank
 FPERAS	JSR ?FSETUPA		; setup addresses
 	JSR ?SETBERA
-	LDA #$FF
-	LDY #0
-	JMP ?WTDATA
+	JMP ?FCERA1
+

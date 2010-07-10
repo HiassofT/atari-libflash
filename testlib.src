@@ -6,6 +6,7 @@ START	= $2000
 
 	* = START
 
+.if 0
 	LDA #$80
 	STA 106
 	JSR GR0
@@ -83,26 +84,27 @@ CNTLP	LDX COUNT
 	BNE CNTLP
 XX	JMP XX
 
+.endif
+
 	JSR FINIT
 	JSR FENABLE
 	JSR FDETECT
 	JSR FDISABLE
 	LDA FTYPE
-	JSR PUTHEX
+;	JSR PUTHEX
 X	JMP X
 
 	RTS
 
 COUNT	.WORD 0
 
-.IF .DEF BERND
-	.include "libflash-mega512.src"
-.else
-	.include "libflash-atarimax8.src"
-.endif
+	.include "libflash.src"
+
+.if 0
 	.include "iohelp.src"
 	.include "arith.src"
 	.include "getdens.src"
+.endif
 
 SECBUF	= *
 

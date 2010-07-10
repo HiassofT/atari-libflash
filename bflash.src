@@ -421,7 +421,7 @@ TCONTL	= * - TCONT
 
 
 
-	.include "libflash-mega512.src"
+	.include "libflash.src"
 	.include "iohelp.src"
 
 BUF	.DC 128 0
