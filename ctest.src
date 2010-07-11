@@ -169,7 +169,7 @@ TEST1	JSR POK
 .if BANKSIZ=8
 ; set flash address to $2000
 	LDA #$20
-.else ; 16k module
+.else ; 16k cart
 	LDA #$40
 .endif
 	STA FLASHADR+1
