@@ -1,0 +1,25 @@
+#!/bin/sh
+
+VER=`date '+%y%m%d'`
+
+if [ $# -ge 1 ] ; then
+	VER=$1
+fi
+
+NAME=libflash-$VER
+TMPDIR=dist/tmp/"${NAME}"
+
+mkdir -p "${TMPDIR}/src/disk"
+
+cp -a \
+	flash.atr *.com \
+	"${TMPDIR}"
+
+cp -a Makefile *.inc *.src *.cpp "${TMPDIR}/src"
+cp -a disk/*.SYS "${TMPDIR}/src/disk"
+
+rm -f "dist/${NAME}".zip
+cd dist/tmp
+zip -r "../${NAME}.zip" ${NAME}
+cd ..
+rm -rf tmp
