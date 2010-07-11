@@ -1,47 +1,53 @@
-all: testa.com testf.com testm.com bflash.com bflash.atr
+COMS = \
+	aflash.com atest.com \
+	fflash.com ftest.com \
+	jflash.com jtest.com \
+	mflash.com mtest.com
+
+all: flash.atr
 
 ATASM ?= atasm
 
-ASMFLAGS=
-#ASMFLAGS = -v -s
+ASMFLAGS ?=
+#ASMFLAGS ?= -v -s
 
 LIBFLASHSRC = libflash.inc libflash.src \
 	libflash-atarimax8.src \
 	libflash-freezer.src \
 	libflash-mega512.src
 
-testa.com: testlib.src $(LIBFLASHSRC) iohelp.src
+FLASHSRC = flash.src iohelp.src cio.inc $(LIBFLASHSRC)
+TESTSRC = ctest.src cio.inc $(LIBFLASHSRC)
+
+aflash.com: $(FLASHSRC)
 	$(ATASM) $(ASMFLAGS) -dATARIMAX8 -o$@ $<
-	mkdir -p disk
-	cp -f $@ disk
 
-testf.com: testlib.src $(LIBFLASHSRC) iohelp.src
+atest.com: $(TESTSRC)
+	$(ATASM) $(ASMFLAGS) -dATARIMAX8 -o$@ $<
+
+fflash.com: $(FLASHSRC)
 	$(ATASM) $(ASMFLAGS) -dFREEZER -o$@ $<
-	mkdir -p disk
-	cp -f $@ disk
 
-testm.com: testlib.src $(LIBFLASHSRC) iohelp.src arith.src getdens.src
+ftest.com: $(TESTSRC)
+	$(ATASM) $(ASMFLAGS) -dFREEZER -o$@ $<
+
+jflash.com: $(FLASHSRC)
+	$(ATASM) $(ASMFLAGS) -dJUERGEN1024 -o$@ $<
+
+jtest.com: $(TESTSRC)
+	$(ATASM) $(ASMFLAGS) -dJUERGEN1024 -o$@ $<
+
+mflash.com: $(FLASHSRC)
 	$(ATASM) $(ASMFLAGS) -dMEGA512 -o$@ $<
-	mkdir -p disk
-	cp -f $@ disk
 
-bflash.com: bflash.src $(LIBFLASHSRC) iohelp.src
+mtest.com: $(TESTSRC)
 	$(ATASM) $(ASMFLAGS) -dMEGA512 -o$@ $<
+
+
+flash.atr: $(COMS)
 	mkdir -p disk
-	cp -f $@ disk
-
-bflash.atr: bflash.com
-	mkdir -p mdisk
-	cp -f bflash.com mdisk/AUTORUN.AR0
-	dir2atr -b MyDos4534 -d 720 $@ mdisk
-
-#aflash.com: aflash.src cio.inc
-#	$(ATASM) $(ASMFLAGS) -oaflash.com aflash.src
-#
-#aflash.atr: aflash.com
-#	mkdir -p disk
-#	cp -f aflash.com disk
-#	dir2atr -b MyDos4534 -d 720 aflash.atr disk
+	cp -f $(COMS) disk
+	dir2atr -b MyDos4534 -d 720 $@ disk
 
 clean:
 	rm -f *.com *.atr

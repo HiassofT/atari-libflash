@@ -38,7 +38,6 @@ YESNO	JSR GETCHAR
 ?YBRK	LDY #$FF
 	RTS	; return with N=1
 
-
 ; input filename
 GETFN	INPUT 0, FNBUF
 	BPL ?GETFN1
@@ -166,8 +165,8 @@ POK	PRINT 0, OKT
 PERROR	PRINT 0, ERRT
 	RTS
 
-OKT	.BYTE "OK", 155
-ERRT	.BYTE "ERROR", 155
+OKT	.BYTE " OK", 155
+ERRT	.BYTE " ERROR", 155
 
 ; convert 16bit number (X=lo, Y=hi) into 5-digit decimal number
 ; with leading zeroes (stored in DECBUF)
@@ -244,6 +243,34 @@ DECDIG	LDX #0
 ?DECDIG2
 	RTS
 
+; print decimal number (without leading zeroes)
+PRDEC	JSR TODEC
+	JSR DECDIG
+?PRDEC1	LDA DECBUF,X
+	STX ?PRDECI
+	JSR PUTCHAR
+	LDX ?PRDECI
+	INX
+	CPX #5
+	BNE ?PRDEC1
+	RTS
+
+; print decimal number (without leading zeroes), inverted
+PRDECI	JSR TODEC
+	JSR DECDIG
+?PRDECI1
+	LDA DECBUF,X
+	ORA #$80
+	STX ?PRDECI
+	JSR PUTCHAR
+	LDX ?PRDECI
+	INX
+	CPX #5
+	BNE ?PRDECI1
+	RTS
+
+; temporary index
+?PRDECI	.BYTE 0
 
 .if 0
 ; print bank number

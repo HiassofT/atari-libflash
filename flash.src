@@ -1,4 +1,4 @@
-;  bflash - program Bernd's 512k Megacart
+;  flash - simple flash programmer
 ;
 ;  Copyright (C) 2004-2010 Matthias Reichl <hias@horus.com>
 ;
@@ -38,10 +38,19 @@ MAINLP	BPUT 0, TTITLEL, TTITLE
 	BPL MOK
 
 	JSR GETCHAR
-	BPL MAINLP
+	CPY #128
+	BNE MAINLP
 	JMP EXIT
 
-MOK	BPUT 0, TMENUL, TMENU
+MOK	LDA FSIZE+2
+	STA ENDHI
+	LDA #1
+	STA NUMCHIP
+.if .def ATARIMAX8 .or .def JUERGEN1024
+	ASL ENDHI
+	INC NUMCHIP
+.endif
+	BPUT 0, TMENUL, TMENU
 MENULP	JSR GETCHAR
 	CPY #128
 	BNE MENUL1
@@ -98,6 +107,25 @@ DOERAS1	LDA #155
 	JSR FADRZERO
 	JSR FENABLE
 	JSR FCERAS
+.if .def ATARIMAX8 .or .def JUERGEN1024
+; also erase second chip, combine status results
+	PHP
+	LDA NUMCHIP
+	CMP #2
+	BCC AMAX1
+
+	PLA
+	STA TMPSTAT
+	LDA FSIZE+2
+	STA FLASHADR+2
+	JSR FCERAS
+	PHP
+	PLA
+	ORA TMPSTAT
+	PHA
+AMAX1	PLP
+
+.endif
 	PHP
 	PHP
 	JSR FDISABLE
@@ -116,6 +144,14 @@ MODE	.BYTE 0
 MODEP	= $00	; program flash
 MODEV	= $40	; verify
 MODED	= $80	; dump flash to file
+
+; 3rd byte of flash size (2=128k, 8=512k, 16=1024k)
+ENDHI	.BYTE 0
+
+; number of flash chips
+NUMCHIP	.BYTE 0
+
+TMPSTAT	.BYTE 0
 
 ; common entry point
 DOCOMMON
@@ -228,7 +264,7 @@ DOLOOPN	JSR POK
 	INC FLASHADR+2
 
 DOLOOP3	LDA FLASHADR+2
-	CMP #8
+	CMP ENDHI
 	BEQ DOLOOPX
 	JMP DOLOOP
 
@@ -370,7 +406,7 @@ PERRADR	BPUT 0, TERRADRL, TERRADR
 	JMP PUTCHAR
 
 
-TTITLE	.BYTE 125, "512k Mega FlashCart Writer V0.2",155
+TTITLE	.BYTE 125, "1024k FlashCart Writer V0.1",155
 	.BYTE "(c) 2010 by Matthias Reichl",155,155
 TTITLEL	= * - TTITLE
 
