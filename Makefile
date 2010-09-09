@@ -1,8 +1,9 @@
 COMS = \
 	aflash.com atest.com \
 	ftest.com \
-	jflash.com jtest.com \
-	mflash.com mtest.com
+	mflash.com mtest.com \
+	mflash8.com mflash16.com \
+	mtest8.com mtest16.com
 
 all: flash.atr
 
@@ -25,17 +26,23 @@ aflash.com: $(FLASHSRC)
 atest.com: $(TESTSRC)
 	$(ATASM) $(ASMFLAGS) -dATARIMAX8 -o$@ $<
 
+mflash8.com: $(FLASHSRC)
+	$(ATASM) $(ASMFLAGS) -dMEGAMAX8 -o$@ $<
+
+mtest8.com: $(TESTSRC)
+	$(ATASM) $(ASMFLAGS) -dMEGAMAX8 -o$@ $<
+
 #fflash.com: $(FLASHSRC)
 #	$(ATASM) $(ASMFLAGS) -dFREEZER -o$@ $<
 
 ftest.com: $(TESTSRC)
 	$(ATASM) $(ASMFLAGS) -dFREEZER -o$@ $<
 
-jflash.com: $(FLASHSRC)
-	$(ATASM) $(ASMFLAGS) -dJUERGEN1024 -o$@ $<
+mflash16.com: $(FLASHSRC)
+	$(ATASM) $(ASMFLAGS) -dMEGAMAX16 -o$@ $<
 
-jtest.com: $(TESTSRC)
-	$(ATASM) $(ASMFLAGS) -dJUERGEN1024 -o$@ $<
+mtest16.com: $(TESTSRC)
+	$(ATASM) $(ASMFLAGS) -dMEGAMAX16 -o$@ $<
 
 mflash.com: $(FLASHSRC)
 	$(ATASM) $(ASMFLAGS) -dMEGA512 -o$@ $<

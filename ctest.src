@@ -56,7 +56,7 @@ MAINLP	BPUT 0, TTITLEL, TTITLE
 	JSR FINIT
 	JSR FENABLE
 
-.if .def ATARIMAX8 .or .def JUERGEN1024
+.if .def ATARIMAX8 .or .def MEGAMAX8 .or .def MEGAMAX16
 ; detect second chip
 	LDA #8
 	STA FLASHADR+2
@@ -85,7 +85,7 @@ FOK	LDA FSIZE+2
 	LDA #1
 	STA NUMCHIP
 
-.if .def ATARIMAX8 .or .def JUERGEN1024
+.if .def ATARIMAX8 .or .def MEGAMAX8 .or .def MEGAMAX16
 	BPUT 0, TCHIPL, TCHIP
 	LDA FTYPE
 	CMP FTYPE2
@@ -138,7 +138,7 @@ TESTLP	LDA #155
 	JSR FENABLE
 	JSR FCERAS
 
-.if .def ATARIMAX8 .or .def JUERGEN1024
+.if .def ATARIMAX8 .or .def MEGAMAX8 .or .def MEGAMAX16
 ; also erase second chip, combine status results
 	PHP
 	LDA NUMCHIP
@@ -294,16 +294,19 @@ TCHIP	.BYTE "number of chips: "
 TCHIPL	= * - TCHIP
 
 .if .def ATARIMAX8
-TTITLE	.BYTE 125, "AtariMax 8MBit FlashCart Tester V0.4",155
+TTITLE	.BYTE 125, "AtariMax 8MBit FlashCart Tester V0.5",155
 .endif
-.if .def JUERGEN1024
-TTITLE	.BYTE 125, "1024k FlashCart Tester V0.4",155
+.if .def MEGAMAX8
+TTITLE	.BYTE 125, "Megamax 8k FlashCart Tester V0.5",155
+.endif
+.if .def MEGAMAX16
+TTITLE	.BYTE 125, "Megamax 16k FlashCart Tester V0.5",155
 .endif
 .if .def FREEZER
-TTITLE	.BYTE 125, "TurboFreezer CartEmu Tester V0.4",155
+TTITLE	.BYTE 125, "TurboFreezer CartEmu Tester V0.5",155
 .endif
 .if .def MEGA512
-TTITLE	.BYTE 125, "Mega 512k FlashCart Tester V0.4",155
+TTITLE	.BYTE 125, "Mega 512k FlashCart Tester V0.5",155
 .endif
 TTITLEL	= * - TTITLE
 
