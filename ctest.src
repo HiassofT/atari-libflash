@@ -56,7 +56,7 @@ MAINLP	BPUT 0, TTITLEL, TTITLE
 	JSR FINIT
 	JSR FENABLE
 
-.if .def ATARIMAX8 .or .def MEGAMAX8 .or .def MEGAMAX16
+.if .def MEGAMAX8 .or .def MEGAMAX16
 ; detect second chip
 	LDA #8
 	STA FLASHADR+2
@@ -85,7 +85,7 @@ FOK	LDA FSIZE+2
 	LDA #1
 	STA NUMCHIP
 
-.if .def ATARIMAX8 .or .def MEGAMAX8 .or .def MEGAMAX16
+.if .def MEGAMAX8 .or .def MEGAMAX16
 	BPUT 0, TCHIPL, TCHIP
 	LDA FTYPE
 	CMP FTYPE2
@@ -98,9 +98,6 @@ ONECHIP	LDA NUMCHIP
 	JSR PUTCHAR
 	LDA #155
 	JSR PUTCHAR
-.if .def ATARIMAX8
-	DEC ENDHI	; special case: stop at $0FE000/$07E000
-.endif
 .endif
 
 MOK	BPUT 0, TMENUL, TMENU
@@ -138,7 +135,7 @@ TESTLP	LDA #155
 	JSR FENABLE
 	JSR FCERAS
 
-.if .def ATARIMAX8 .or .def MEGAMAX8 .or .def MEGAMAX16
+.if .def MEGAMAX8 .or .def MEGAMAX16
 ; also erase second chip, combine status results
 	PHP
 	LDA NUMCHIP
@@ -224,12 +221,6 @@ TEST3
 	LDA FLASHADR+2
 	CMP ENDHI
 	BNE TESTLP1
-.if .def ATARIMAX8
-	; special case: stop at $0FE000/$07E000
-	LDA FLASHADR+1
-	CMP #$E0
-	BNE TESTLP1
-.endif
 	INC LOOPCNT
 	BNE L1
 	INC LOOPCNT+1
@@ -293,9 +284,6 @@ FTYPE2	.BYTE 0
 TCHIP	.BYTE "number of chips: "
 TCHIPL	= * - TCHIP
 
-.if .def ATARIMAX8
-TTITLE	.BYTE 125, "AtariMax 8MBit FlashCart Tester V0.5",155
-.endif
 .if .def MEGAMAX8
 TTITLE	.BYTE 125, "Megamax 8k FlashCart Tester V0.5",155
 .endif

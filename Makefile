@@ -1,5 +1,4 @@
 COMS = \
-	aflash.com atest.com \
 	ftest.com \
 	mflash.com mtest.com \
 	mflash8.com mflash16.com \
@@ -13,18 +12,13 @@ ASMFLAGS ?=
 #ASMFLAGS ?= -v -s
 
 LIBFLASHSRC = libflash.inc libflash.src \
-	libflash-atarimax8.src \
+	libflash-megamax8.src \
+	libflash-megamax16.src \
 	libflash-freezer.src \
 	libflash-mega512.src
 
 FLASHSRC = flash.src cio.inc iohelp.src iohelpfl.src $(LIBFLASHSRC)
 TESTSRC = ctest.src cio.inc iohelpfl.src $(LIBFLASHSRC)
-
-aflash.com: $(FLASHSRC)
-	$(ATASM) $(ASMFLAGS) -dATARIMAX8 -o$@ $<
-
-atest.com: $(TESTSRC)
-	$(ATASM) $(ASMFLAGS) -dATARIMAX8 -o$@ $<
 
 mflash8.com: $(FLASHSRC)
 	$(ATASM) $(ASMFLAGS) -dMEGAMAX8 -o$@ $<
