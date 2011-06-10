@@ -190,3 +190,18 @@ CPBIN	=  11
         JSR CIOV
 	.ENDM
 
+	.MACRO INPUT2 ; KANAL,BUFFER,LEN
+	KANNUM %1
+	LDA #CGTXT
+       	STA ICCOM,X
+       	LDA #<[%2]
+       	STA ICBAL,X
+       	LDA #>[%2]
+       	STA ICBAH,X
+       	LDA #[%3]                ; max. Laenge
+       	STA ICBLL,X
+       	LDA #0
+       	STA ICBLH,X
+        JSR CIOV
+	.ENDM
+

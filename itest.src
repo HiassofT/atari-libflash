@@ -1,0 +1,77 @@
+;  flash - simple flash programmer
+;
+;  Copyright (C) 2004-2010 Matthias Reichl <hias@horus.com>
+;
+;  This program is free software; you can redistribute it and/or modify
+;  it under the terms of the GNU General Public License as published by
+;  the Free Software Foundation; either version 2 of the License, or
+;  (at your option) any later version.
+;
+;  This program is distributed in the hope that it will be useful,
+;  but WITHOUT ANY WARRANTY; without even the implied warranty of
+;  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;  GNU General Public License for more details.
+;
+;  You should have received a copy of the GNU General Public License
+;  along with this program; if not, write to the Free Software
+;  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+
+	.include "cio.inc"
+	.include "iohelp.inc"
+
+START	= $2000
+
+	.BANK
+	* = START
+
+LOOP	BPUT0 PROMPT
+	INPUT0L ATOIBUF
+	BMI LERR
+
+	JSR ATOI
+	PHP
+	STX BANK
+	TYA
+	JSR PUTHEX
+	LDA BANK
+	JSR PUTHEX
+	LDA #32
+	JSR PUTCHAR
+	PLP
+	BCC LOK
+LERR	JSR PERROR
+	JMP LOOP
+
+LOK	JSR POK
+	LDA BANK
+	JSR BNK2ADR
+	STX MTEMP
+	STY MTEMP+1
+	TYA
+	JSR PUTHEX
+	LDA MTEMP
+	JSR PUTHEX
+
+	LDA #32
+	JSR PUTCHAR
+
+	LDA MTEMP
+	ORA #$1F
+	TAX
+	LDY MTEMP+1
+	JSR ADR2BNK
+	JSR PUTHEX
+
+	LDA #155
+	JSR PUTCHAR
+	
+	JMP LOOP
+
+BANK	.BYTE 0
+
+MTEMP	.BYTE 0,0
+
+PROMPT	.BYTE "dec number >"
+PROMPTL	= * - PROMPT
+
+	.include "iohelp.src"

@@ -2,7 +2,9 @@ COMS = \
 	ftest.com \
 	mflash.com mtest.com \
 	mflash8.com mflash16.com \
-	mtest8.com mtest16.com
+	mtest8.com mtest16.com \
+	fflash.com \
+	itest.com
 
 all: flash.atr
 
@@ -17,8 +19,10 @@ LIBFLASHSRC = libflash.inc libflash.src \
 	libflash-freezer.src \
 	libflash-mega512.src
 
-FLASHSRC = flash.src cio.inc iohelp.src iohelpfl.src $(LIBFLASHSRC)
-TESTSRC = ctest.src cio.inc iohelpfl.src $(LIBFLASHSRC)
+FLASHSRC = flash.src cio.inc iohelp.inc iohelp.src iohelpfl.src $(LIBFLASHSRC)
+FFLASHSRC = flash2.src cio.inc iohelp.inc iohelp.src iohelpfl.src $(LIBFLASHSRC)
+ITESTSRC = itest.src cio.inc iohelp.inc iohelp.src iohelpfl.src $(LIBFLASHSRC)
+TESTSRC = ctest.src cio.inc iohelp.inc iohelp.src iohelpfl.src $(LIBFLASHSRC)
 
 mflash8.com: $(FLASHSRC)
 	$(ATASM) $(ASMFLAGS) -dMEGAMAX8 -o$@ $<
@@ -26,10 +30,13 @@ mflash8.com: $(FLASHSRC)
 mtest8.com: $(TESTSRC)
 	$(ATASM) $(ASMFLAGS) -dMEGAMAX8 -o$@ $<
 
-#fflash.com: $(FLASHSRC)
-#	$(ATASM) $(ASMFLAGS) -dFREEZER -o$@ $<
+fflash.com: $(FFLASHSRC)
+	$(ATASM) -s $(ASMFLAGS) -dFREEZER -o$@ $<
 
 ftest.com: $(TESTSRC)
+	$(ATASM) $(ASMFLAGS) -dFREEZER -o$@ $<
+
+itest.com: $(ITESTSRC)
 	$(ATASM) $(ASMFLAGS) -dFREEZER -o$@ $<
 
 mflash16.com: $(FLASHSRC)
