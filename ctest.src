@@ -290,8 +290,8 @@ TTITLE	.BYTE 125, "Megamax 8k FlashCart Tester V0.5",155
 .if .def MEGAMAX16
 TTITLE	.BYTE 125, "Megamax 16k FlashCart Tester V0.5",155
 .endif
-.if .def FREEZER
-TTITLE	.BYTE 125, "TurboFreezer CartEmu Tester V0.5",155
+.if .def FREEZER2005
+TTITLE	.BYTE 125, "Turbo Freezer 2005 CartEmu Tester V0.5",155
 .endif
 .if .def MEGA512
 TTITLE	.BYTE 125, "Mega 512k FlashCart Tester V0.5",155

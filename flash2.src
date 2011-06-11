@@ -462,8 +462,11 @@ M106	.BYTE 0
 M740	.BYTE 0
 MD301	.BYTE 0
 
-.if .def FREEZER
+.if .def FREEZER2005
 TTITLE  .BYTE 125, "Freezer 2005 Flash Writer V0.5",155
+.endif
+.if .def FREEZER2011
+TTITLE  .BYTE 125, "Freezer 2011 Flash Writer V0.5",155
 .endif
 .if .def MEGAMAX8
 TTITLE  .BYTE 125, "Megamax 8k FlashCart Writer V0.5",155

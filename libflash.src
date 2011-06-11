@@ -24,8 +24,12 @@
 	.include "libflash-megamax16.src"
 .endif
 
-.if .def FREEZER
-	.include "libflash-freezer.src"
+.if .def FREEZER2005
+	.include "libflash-freezer2005.src"
+.endif
+
+.if .def FREEZER2011
+	.include "libflash-freezer2011.src"
 .endif
 
 .if .def MEGA512
