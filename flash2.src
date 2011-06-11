@@ -17,7 +17,6 @@
 ;  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 	.include "cio.inc"
-	.include "iohelp.inc"
 	.include "libflash.inc"
 
 START	= $2000
@@ -464,7 +463,7 @@ M740	.BYTE 0
 MD301	.BYTE 0
 
 .if .def FREEZER
-TTITLE  .BYTE 125, "Freezer Flash Writer V0.5",155
+TTITLE  .BYTE 125, "Freezer 2005 Flash Writer V0.5",155
 .endif
 .if .def MEGAMAX8
 TTITLE  .BYTE 125, "Megamax 8k FlashCart Writer V0.5",155
@@ -478,15 +477,15 @@ TTITLE  .BYTE 125, "Mega 512k FlashCart Writer V0.5",155
 TTITLEL	= * - TTITLE
 
 TMENU	.BYTE 155
-	.BYTE "1) Program flash cart",155
-	.BYTE "2) Verify flash cart",155
-	.BYTE "3) Write flash cart to file",155
-	.BYTE "4) Erase flash cart",155
+	.BYTE "1) Program flash",155
+	.BYTE "2) Verify flash",155
+	.BYTE "3) Write flash to file",155
+	.BYTE "4) Erase flash",155
 	.BYTE "0) Exit program",155
 	.BYTE "> "
 TMENUL	= * - TMENU
 
-TASKER	.BYTE "Completely erase flash cart (y/n)? "
+TASKER	.BYTE "Completely erase flash (y/n)? "
 TASKERL	= * - TASKER
 
 TFILNA	.BYTE "Filename > "
@@ -497,7 +496,7 @@ TOPENER	.BYTE "Error opening file!",155
 TERAF	.BYTE " erase"
 TERAFL	= * - TERAF
 
-TERAS	.BYTE " erasing cart: "
+TERAS	.BYTE " erasing flash: "
 TERASL	= * - TERAS
 
 TRDDAT	.BYTE " read"
@@ -526,6 +525,7 @@ TNBANK	.BYTE "number of banks (0=to end) >"
 TNBANKL	= * - TNBANK
 
 	.include "libflash.src"
+	.include "cio.src"
 	.include "iohelp.src"
 	.include "iohelpfl.src"
 

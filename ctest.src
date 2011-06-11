@@ -17,7 +17,6 @@
 ;  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 	.include "cio.inc"
-	.include "iohelp.inc"
 	.include "libflash.inc"
 
 ; temporary ZP vectors
@@ -315,6 +314,7 @@ TCONT	.BYTE 155
 	.BYTE "Press any key to continue > "
 TCONTL	= * - TCONT
 
+	.include "cio.src"
 	.include "iohelp.src"
 	.include "iohelpfl.src"
 
