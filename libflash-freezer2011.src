@@ -25,15 +25,19 @@ BANKBAS	= $A000	; base address
 ; enable/disable CartEmu
 FRENABLE = $D591
 
-; config register:
-FRCFG1	= $D592
-; bit 1: 0=source ROM 1=source RAM
-; bit 0: 0=write protect ROM 1=write enable
-
-FRMODE	= $D593
+FRMODE	= $D592
 ; 0 = off
 ; 1 = 8k standard
-; ...
+; 2 = 16k
+; 3 = oss
+; 4 = SDX 64k (old)
+; 5 = Atarimax 8MBit
+; 14 = 8k legacy (Freezer 2005)
+
+; config register:
+FRCFG1	= $D593
+; bit 1: 0=source ROM 1=source RAM
+; bit 0: 0=write protect ROM 1=write enable
 
 FRSDX	= $D594
 ; 0 = off
