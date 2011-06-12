@@ -353,17 +353,17 @@ RRANGEX	LDY #$FF
 	STY ENDADR+2
 
 RRANGEE
-	JSR PFLADR
-	LDA #32
-	JSR PUTCHAR
-	LDA ENDADR+2
-	JSR PUTHEX
-	LDA ENDADR+1
-	JSR PUTHEX
-	LDA ENDADR
-	JSR PUTHEX
-	LDA #155
-	JSR PUTCHAR
+;	JSR PFLADR
+;	LDA #32
+;	JSR PUTCHAR
+;	LDA ENDADR+2
+;	JSR PUTHEX
+;	LDA ENDADR+1
+;	JSR PUTHEX
+;	LDA ENDADR
+;	JSR PUTHEX
+;	LDA #155
+;	JSR PUTCHAR
 
 	LDY #0
 	RTS
@@ -521,10 +521,10 @@ TCONT	.BYTE 155
 	.BYTE "Press any key to continue > "
 TCONTL	= * - TCONT
 
-TSBANK	.BYTE "starting bank >"
+TSBANK	.BYTE "starting bank > 0",30
 TSBANKL	= * - TSBANK
 
-TNBANK	.BYTE "number of banks (0=to end) >"
+TNBANK	.BYTE "number of banks (0=to end) > 0",30
 TNBANKL	= * - TNBANK
 
 	.include "libflash.src"
