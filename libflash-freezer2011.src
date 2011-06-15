@@ -25,21 +25,26 @@ BANKBAS	= $A000	; base address
 ; enable/disable CartEmu
 FRENABLE = $D591
 
-FRMODE	= $D592
+; sram at $8000 bank
+FRSBANK	= $D592
+; sram at $8000 enable
+FRSENAB	= $D593
+
+FRMODE	= $D594
 ; 0 = off
-; 1 = 8k standard
-; 2 = 16k
-; 3 = oss
-; 4 = SDX 64k (old)
+; 1 = 8k
+; 2 = 8k legacy (Freezer 2005)
+; 3 = 16k
+; 4 = oss
 ; 5 = Atarimax 8MBit
-; 14 = 8k legacy (Freezer 2005)
 
 ; config register:
-FRCFG1	= $D593
+FRCFG	= $D595
+; bit 2: 0=keep settings, 1=reset settings
 ; bit 1: 0=source ROM 1=source RAM
 ; bit 0: 0=write protect ROM 1=write enable
 
-FRSDX	= $D594
+FRSDX	= $D596
 ; 0 = off
 ; 1 = SDX ROM 0
 ; 2 = SDX ROM 64
@@ -76,12 +81,6 @@ FRSDX	= $D594
 	SBANKX
 	.ENDM
 
-; enable cartemu
-	.MACRO SBANKON
-	LDA #1
-	STA FRENABLE
-	.ENDM
-
 ; disable cartemu
 	.MACRO SBANKOFF
 	LDA #0
@@ -100,14 +99,15 @@ FRSDX	= $D594
 
 ; init flash library
 FINIT   INC $42
-	SBANKOFF
-	LDA FRCFG1
-	AND #$FD	; (source ROM, write protect)
-	STA FRCFG1
-	LDA #0
-	STA FRSDX	; disable SDX
 	LDA #1
 	STA FRMODE
+	SBANKOFF
+	LDA FRCFG
+	AND #$FD	; (source ROM, write protect)
+	STA FRCFG
+	LDA #0
+	STA FRSDX	; disable SDX
+	STA FRSENAB	; disable RAM at $8000
 	LDA $D013
 	STA $3FA
 	DEC $42
@@ -115,14 +115,15 @@ FINIT   INC $42
 
 ; enable flash access
 FENABLE	INC $42
-	SBANKON
-	LDA FRCFG1
+	LDX #0
+	SBANKX
+	LDA FRCFG
 	AND #$FD
 	ORA #1
 	BIT ?FRAMMOD
 	BMI ?FENAB1
 	ORA #2
-?FENAB1	STA FRCFG1
+?FENAB1	STA FRCFG
 	LDA $D013
 	STA $3FA
 	DEC $42
@@ -131,9 +132,9 @@ FENABLE	INC $42
 ; disable flash access
 FDISABLE INC $42
 	SBANKOFF
-	LDA FRCFG1
+	LDA FRCFG
 	AND #$FD
-	STA FRCFG1
+	STA FRCFG
 	LDA $D013
 	STA $3FA
 	DEC $42
