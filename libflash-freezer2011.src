@@ -40,7 +40,7 @@ FRMODE	= $D594
 
 ; config register:
 FRCFG	= $D595
-; bit 2: 0=keep settings, 1=reset settings
+; bit 2: 0=normal cartemu, 1=use menu
 ; bit 1: 0=source ROM 1=source RAM
 ; bit 0: 0=write protect ROM 1=write enable
 
@@ -102,8 +102,7 @@ FINIT   INC $42
 	LDA #1
 	STA FRMODE
 	SBANKOFF
-	LDA FRCFG
-	AND #$FD	; (source ROM, write protect)
+	LDA #0		; (normal cartemu, source ROM, write protect)
 	STA FRCFG
 	LDA #0
 	STA FRSDX	; disable SDX
@@ -118,7 +117,7 @@ FENABLE	INC $42
 	LDX #0
 	SBANKX
 	LDA FRCFG
-	AND #$FD
+	AND #$F8
 	ORA #1
 	BIT ?FRAMMOD
 	BMI ?FENAB1
@@ -133,7 +132,7 @@ FENABLE	INC $42
 FDISABLE INC $42
 	SBANKOFF
 	LDA FRCFG
-	AND #$FD
+	AND #$F8
 	STA FRCFG
 	LDA $D013
 	STA $3FA
