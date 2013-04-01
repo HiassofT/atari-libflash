@@ -1,6 +1,7 @@
 COMS = \
 	ftest.com \
 	mflash.com mtest.com \
+	m4flash.com m4test.com \
 	mflash8.com mflash16.com \
 	mtest8.com mtest16.com \
 	fflash.com fflash5.com \
@@ -54,6 +55,12 @@ mflash.com: $(FLASHSRC)
 
 mtest.com: $(TESTSRC)
 	$(ATASM) $(ASMFLAGS) -dMEGA512 -o$@ $<
+
+m4flash.com: $(FLASHSRC)
+	$(ATASM) $(ASMFLAGS) -dMEGA4096 -o$@ $<
+
+m4test.com: $(TESTSRC)
+	$(ATASM) $(ASMFLAGS) -dMEGA4096 -o$@ $<
 
 
 flash.atr: $(COMS)
