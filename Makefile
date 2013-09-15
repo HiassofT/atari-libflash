@@ -15,6 +15,7 @@ ASMFLAGS ?=
 #ASMFLAGS ?= -v -s
 
 LIBFLASHSRC = libflash.inc libflash.src \
+	libflash-inc-target.inc \
 	libflash-megamax8.src \
 	libflash-megamax16.src \
 	libflash-freezer2005.src \
