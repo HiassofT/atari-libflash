@@ -53,7 +53,7 @@ MOK	LDA FSIZE
 	STA SIZE+3
 	LDA #1
 	STA NUMCHIP
-.if .def MEGAMAX8 .or .def MEGAMAX16 .or .def FREEZER2011
+.if .def ATARIMAX8 .or .def MEGAMAX16 .or .def FREEZER2011
 	ASL SIZE
 	ROL SIZE+1
 	ROL SIZE+2
@@ -468,8 +468,8 @@ TTITLE  .BYTE 125, "Freezer 2005 Flash Writer V0.5",155
 .if .def FREEZER2011
 TTITLE  .BYTE 125, "Freezer 2011 Flash Writer V0.5",155
 .endif
-.if .def MEGAMAX8
-TTITLE  .BYTE 125, "Megamax 8k FlashCart Writer V0.5",155
+.if .def ATARIMAX8
+TTITLE  .BYTE 125, "AtariMax 8MBit FlashCart Writer V0.5",155
 .endif
 .if .def MEGAMAX16
 TTITLE  .BYTE 125, "Megamax 16k FlashCart Writer V0.5",155

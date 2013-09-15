@@ -2,8 +2,8 @@ COMS = \
 	ftest.com \
 	mflash.com mtest.com \
 	m4flash.com m4test.com \
-	mflash8.com mflash16.com \
-	mtest8.com mtest16.com \
+	aflash.com mflash16.com \
+	atest.com mtest16.com \
 	fflash.com fflash5.com \
 	itest.com
 
@@ -16,7 +16,7 @@ ASMFLAGS ?=
 
 LIBFLASHSRC = libflash.inc libflash.src \
 	libflash-inc-target.inc \
-	libflash-megamax8.src \
+	libflash-atarimax8.src \
 	libflash-megamax16.src \
 	libflash-freezer2005.src \
 	libflash-freezer2011.src \
@@ -27,11 +27,11 @@ FFLASHSRC = flash2.src cio.inc cio.src iohelp.src iohelpfl.src $(LIBFLASHSRC)
 ITESTSRC = itest.src cio.inc cio.src iohelp.src iohelpfl.src $(LIBFLASHSRC)
 TESTSRC = ctest.src cio.inc cio.src iohelp.src iohelpfl.src $(LIBFLASHSRC)
 
-mflash8.com: $(FLASHSRC)
-	$(ATASM) $(ASMFLAGS) -dMEGAMAX8 -o$@ $<
+aflash.com: $(FLASHSRC)
+	$(ATASM) $(ASMFLAGS) -dATARIMAX8 -o$@ $<
 
-mtest8.com: $(TESTSRC)
-	$(ATASM) $(ASMFLAGS) -dMEGAMAX8 -o$@ $<
+atest.com: $(TESTSRC)
+	$(ATASM) $(ASMFLAGS) -dATARIMAX8 -o$@ $<
 
 fflash5.com: $(FFLASHSRC)
 	$(ATASM) $(ASMFLAGS) -dFREEZER2005 -o$@ $<

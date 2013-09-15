@@ -1,5 +1,5 @@
-.if .def MEGAMAX8
-	.include "libflash-megamax8.src"
+.if .def ATARIMAX8
+	.include "libflash-atarimax8.src"
 .endif
 
 .if .def MEGAMAX16
