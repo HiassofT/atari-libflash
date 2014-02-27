@@ -627,9 +627,9 @@ FWBYTE	JSR ?FSETUPB		; setup addresses for byte mode
 	LDA #0
 	RTS
 
-?FBERR2 STA FERRFD
-	LDA (DATAVEC),Y
-	STA FERRUD
+?FBERR2 STA FERRUD
+	LDA (FLASHVEC),Y
+	STA FERRFD
 	INC FERROR
 ?FBERR1	INC FERROR
 ?FBERR	LDA FERROR
@@ -666,8 +666,8 @@ FWPAGE	JSR ?FSETUPP		; setup adresses and check for page mode
 	STA (FLASHVEC),Y	; program data
 	JSR ?WTDATA		; wait for programming to finish
 	BMI ?FPERR1		; error
-	LDA (FLASHVEC),Y
-	CMP (DATAVEC),Y		; verify data
+	LDA (DATAVEC),Y
+	CMP (FLASHVEC),Y		; verify data
 	BNE ?FPERR2
 	INY
 	BNE ?FWPAGL2
@@ -682,9 +682,9 @@ FWPAGE	JSR ?FSETUPP		; setup adresses and check for page mode
 	RTS
 
 ; error in page mode: add Y to current address and return
-?FPERR2	STA FERRFD
-	LDA (DATAVEC),Y
-	STA FERRUD
+?FPERR2	STA FERRUD
+	LDA (FLASHVEC),Y
+	STA FERRFD
 	INC FERROR
 ?FPERR1	INC FERROR
 
