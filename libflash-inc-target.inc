@@ -21,3 +21,7 @@
 .if .def MEGA4096
 	.include "libflash-mega4096.src"
 .endif
+
+.if .def U1MB
+	.include "libflash-u1mb.src"
+.endif

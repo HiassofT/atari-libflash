@@ -5,6 +5,7 @@ COMS = \
 	aflash.com mflash16.com \
 	atest.com mtest16.com \
 	fflash.com fflash5.com \
+	uflash.com \
 	itest.com
 
 all: flash.atr
@@ -20,7 +21,8 @@ LIBFLASHSRC = libflash.inc libflash.src \
 	libflash-megamax16.src \
 	libflash-freezer2005.src \
 	libflash-freezer2011.src \
-	libflash-mega512.src
+	libflash-mega512.src \
+	libflash-u1mb.src
 
 FLASHSRC = flash.src cio.inc cio.src iohelp.src iohelpfl.src $(LIBFLASHSRC)
 FFLASHSRC = flash2.src cio.inc cio.src iohelp.src iohelpfl.src $(LIBFLASHSRC)
@@ -62,6 +64,9 @@ m4flash.com: $(FLASHSRC)
 
 m4test.com: $(TESTSRC)
 	$(ATASM) $(ASMFLAGS) -dMEGA4096 -o$@ $<
+
+uflash.com: $(FFLASHSRC)
+	$(ATASM) $(ASMFLAGS) -dU1MB -o$@ $<
 
 
 flash.atr: $(COMS)

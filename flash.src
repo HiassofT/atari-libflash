@@ -334,6 +334,9 @@ TTITLE  .BYTE 125, "Mega 512k FlashCart Writer V0.5",155
 .if .def MEGA4096
 TTITLE  .BYTE 125, "4MB Mega FlashCart Writer V0.5",155
 .endif
+.if .def U1MB
+TTITLE  .BYTE 125, "U1MB Flash Writer V0.5",155
+.endif
 TTITLEL	= * - TTITLE
 
 TMENU	.BYTE 155
