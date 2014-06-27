@@ -3,6 +3,7 @@ COMS = \
 	mflash.com mtest.com \
 	m4flash.com m4test.com \
 	aflash.com mflash16.com \
+	aflash1.com \
 	atest.com mtest16.com \
 	fflash.com fflash5.com \
 	uflash.com \
@@ -31,6 +32,9 @@ TESTSRC = ctest.src cio.inc cio.src iohelp.src iohelpfl.src $(LIBFLASHSRC)
 
 aflash.com: $(FLASHSRC)
 	$(ATASM) $(ASMFLAGS) -dATARIMAX8 -o$@ $<
+
+aflash1.com: $(FLASHSRC)
+	$(ATASM) $(ASMFLAGS) -dATARIMAX8 -dONECHIP -o$@ $<
 
 atest.com: $(TESTSRC)
 	$(ATASM) $(ASMFLAGS) -dATARIMAX8 -o$@ $<

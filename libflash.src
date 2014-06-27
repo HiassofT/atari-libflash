@@ -459,6 +459,8 @@ FDETECT	JSR ?FSETUPA	; setup addresses
 	BEQ ?DET512
 	CMP #TAMIC40
 	BEQ ?DET512
+	CMP #TSST40
+	BEQ ?DET512_4
 	CMP #TRAM512
 	BEQ ?RAM512
 
@@ -539,6 +541,23 @@ FDETECT	JSR ?FSETUPA	; setup addresses
 	STA FBLKMSK+2
 	BEQ ?DET5
 
+; 512k with 4k sectors
+?DET512_4
+	LDA #8		; flash size 512k
+	STA FSIZE+2	
+
+	LDA #$10	; block size 4k
+	STA FBLKSIZ+1
+
+	LDA #128	; 128 blocks
+	STA FNUMBLK
+
+	LDA #0		; block mask is $000FFF
+	STA FBLKMSK+2
+	LDA #$0F
+	STA FBLKMSK+1
+	BNE ?DET5
+
 ; set chip type (A=chip type)
 FSETCHP	STA FTYPE
 	CMP #TNOFLSH
@@ -551,6 +570,7 @@ FSETCHP	STA FTYPE
 
 ?IDHI	.BYTE TAMD10, $01, $20	; AMD 29F010
 	.BYTE TBM40, $AD, $40	; BM 29F040
+	.BYTE TSST40, $BF, $B7	; SST 39SF040
 	.BYTE TNOFLSH,$FF,$FF	; end of table
 
 ?IDLO	.BYTE TAMD10B, $01, $20	; AMD 29F010B
