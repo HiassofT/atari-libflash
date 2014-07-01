@@ -241,6 +241,23 @@ DOLOOP2	BIT MODE
 	JSR FDISABLE
 	PLP
 	BMI DOLPERA
+; check for 4k blocksize flash
+	LDA FBLKMSK+1
+	CMP #$0F
+	BNE ?NOERAS
+; yes, we have a 4k flash, also erase next 4k
+	LDA FLASHADR+1
+	ORA #$10        ; add $1000 to address
+	STA FLASHADR+1
+	JSR FENABLE
+	JSR FPERAS
+	PHP
+	LDA FLASHADR+1
+	AND #$E0        ; restore old 8k address
+	STA FLASHADR+1
+	JSR FDISABLE
+	PLP
+	BMI DOLPERA
 
 ?NOERAS
 
