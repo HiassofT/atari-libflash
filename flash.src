@@ -324,22 +324,22 @@ MD301	.BYTE 0
 
 .if .def ATARIMAX8
 .if .def ONECHIP
-TTITLE  .BYTE 125, "AtariMax 4MBit FlashCart Writer V0.5",155
+TTITLE  .BYTE 125, "AtariMax 4MBit FlashCart Writer V0.51",155
 .else
-TTITLE  .BYTE 125, "AtariMax 8MBit FlashCart Writer V0.5",155
+TTITLE  .BYTE 125, "AtariMax 8MBit FlashCart Writer V0.51",155
 .endif
 .endif
 .if .def MEGAMAX16
-TTITLE  .BYTE 125, "Megamax 16k FlashCart Writer V0.5",155
+TTITLE  .BYTE 125, "Megamax 16k FlashCart Writer V0.51",155
 .endif
 .if .def MEGA512
-TTITLE  .BYTE 125, "Mega 512k FlashCart Writer V0.5",155
+TTITLE  .BYTE 125, "Mega 512k FlashCart Writer V0.51",155
 .endif
 .if .def MEGA4096
-TTITLE  .BYTE 125, "4MB Mega FlashCart Writer V0.5",155
+TTITLE  .BYTE 125, "4MB Mega FlashCart Writer V0.51",155
 .endif
 .if .def U1MB
-TTITLE  .BYTE 125, "U1MB Flash Writer V0.5",155
+TTITLE  .BYTE 125, "U1MB Flash Writer V0.51",155
 .endif
 TTITLEL	= * - TTITLE
 
