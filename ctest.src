@@ -56,7 +56,7 @@ MAINLP	BPUT 0, TTITLEL, TTITLE
 	JSR FINIT
 	JSR FENABLE
 
-.if .def ATARIMAX8 .or .def MEGAMAX16
+.if [ .def ATARIMAX8 ] .or [ .def MEGAMAX16 ]
 ; detect second chip
 	LDA #8
 	STA FLASHADR+2
@@ -85,7 +85,7 @@ FOK	LDA FSIZE+2
 	LDA #1
 	STA NUMCHIP
 
-.if .def ATARIMAX8 .or .def MEGAMAX16
+.if [ .def ATARIMAX8 ] .or [ .def MEGAMAX16 ]
 	BPUT 0, TCHIPL, TCHIP
 	LDA FTYPE
 	CMP FTYPE2
@@ -135,7 +135,7 @@ TESTLP	LDA #155
 	JSR FENABLE
 	JSR FCERAS
 
-.if .def ATARIMAX8 .or .def MEGAMAX16
+.if [ .def ATARIMAX8 ] .or [ .def MEGAMAX16 ]
 ; also erase second chip, combine status results
 	PHP
 	LDA NUMCHIP

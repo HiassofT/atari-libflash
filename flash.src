@@ -46,7 +46,7 @@ MOK	LDA FSIZE+2
 	STA ENDHI
 	LDA #1
 	STA NUMCHIP
-.if (.def ATARIMAX8 .or .def MEGAMAX16) .and .not .def ONECHIP
+.if [ [ .def ATARIMAX8 ] .or [ .def MEGAMAX16 ] ] .and [ .not .def ONECHIP ]
 	ASL ENDHI
 	INC NUMCHIP
 .endif
@@ -92,7 +92,7 @@ ERASEF	BPUT 0, TERASL, TERAS
 	JSR FENABLE
 	JSR FCERAS
 
-.if (.def ATARIMAX8 .or .def MEGAMAX16) .and .not .def ONECHIP
+.if [ [ .def ATARIMAX8 ] .or [ .def MEGAMAX16 ] ] .and [ .not .def ONECHIP ]
 ; also erase second chip, combine status results
 	PHP
 	LDA NUMCHIP
