@@ -73,10 +73,12 @@ uflash.com: $(FFLASHSRC)
 	$(ATASM) $(ASMFLAGS) -dU1MB -o$@ $<
 
 
-flash.atr: $(COMS)
+flash.atr: $(COMS) mydos-dos.sys mydos-dup.sys
 	mkdir -p disk
+	cp -f mydos-dos.sys disk/DOS.SYS
+	cp -f mydos-dup.sys disk/DUP.SYS
 	cp -f $(COMS) disk
 	dir2atr -b MyDos4534 -d 720 $@ disk
 
 clean:
-	rm -f *.com *.atr
+	rm -rf *.com *.atr disk
