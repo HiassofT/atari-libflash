@@ -430,7 +430,19 @@ FDETECT	JSR ?FSETUPA	; setup addresses
 	BNE ?DET3
 
 ; setup flash/bank sizes etc.
-?DET4	
+?DET4
+	JSR ?FSETCHP	; setup chip parameters
+
+	JMP ?SETREAD	; set flash back to read mode
+?DET5	RTS
+
+; set chip type (A=chip type)
+FSETCHP	STA FTYPE
+	CMP #TNOFLSH
+	BNE ?FSETCHP
+	RTS
+
+?FSETCHP
 ; default values
 	LDA #0
 	STA FSIZE
@@ -504,10 +516,7 @@ FDETECT	JSR ?FSETUPA	; setup addresses
 	LDA #0		; block mask is $00FFFF
 	STA FBLKMSK+2
 
-?DET5	LDA ?FRAMMOD	; are we in RAM mode?
-	BEQ ?DET6	; yes, just return
-	JMP ?SETREAD	; no, set flash back to read mode
-?DET6	RTS		
+	RTS
 
 ?RAM128
 	INC ?FRAMMOD
@@ -525,7 +534,8 @@ FDETECT	JSR ?FSETUPA	; setup addresses
 	STA FBLKMSK
 	LDA #$3F
 	STA FBLKMSK+1
-	BNE ?DET5
+
+	RTS
 
 ?RAM1024
 	INC ?FRAMMOD
@@ -545,7 +555,7 @@ FDETECT	JSR ?FSETUPA	; setup addresses
 
 	LDA #0		; block mask is $00FFFF
 	STA FBLKMSK+2
-	BEQ ?DET5
+	RTS
 
 ; 512k with 4k sectors
 ?DET512_4
@@ -562,7 +572,7 @@ FDETECT	JSR ?FSETUPA	; setup addresses
 	STA FBLKMSK+2
 	LDA #$0F
 	STA FBLKMSK+1
-	BNE ?DET5
+	RTS
 
 ; 128k with 4k sectors
 ?DET128_4
@@ -579,16 +589,7 @@ FDETECT	JSR ?FSETUPA	; setup addresses
 	STA FBLKMSK+2
 	LDA #$0F
 	STA FBLKMSK+1
-	BNE ?DET5
-
-
-
-; set chip type (A=chip type)
-FSETCHP	STA FTYPE
-	CMP #TNOFLSH
-	BEQ ?FSETC1
-	JMP ?DET4	; valid type - setup config
-?FSETC1	RTS
+	RTS
 
 ; ID tables
 ; format: chip-type, manufacturer ID, device ID
